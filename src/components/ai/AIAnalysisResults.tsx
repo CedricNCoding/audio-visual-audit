@@ -309,13 +309,15 @@ export const AIAnalysisResults = ({
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div>
-                      <strong>Table:</strong> {data.user_connectivity.table.hdmi}{" "}
-                      HDMI, {data.user_connectivity.table.usbc} USB-C,{" "}
-                      {data.user_connectivity.table.rj45} RJ45
+                      <strong>Table:</strong> {data.user_connectivity?.table?.hdmi || 0}{" "}
+                      HDMI, {data.user_connectivity?.table?.usbc || 0} USB-C,{" "}
+                      {data.user_connectivity?.table?.rj45 || 0} RJ45
                     </div>
-                    <div className="text-sm italic">
-                      {data.user_connectivity.table.comments}
-                    </div>
+                    {data.user_connectivity?.table?.comments && (
+                      <div className="text-sm italic">
+                        {data.user_connectivity.table.comments}
+                      </div>
+                    )}
                   </div>
                   <Separator />
                   <div className="flex items-center space-x-2">
