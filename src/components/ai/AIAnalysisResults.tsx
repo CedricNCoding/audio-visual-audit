@@ -262,8 +262,8 @@ export const AIAnalysisResults = ({
                     {data.audio_config.diffusion?.homogene && (
                       <div>
                         <strong>Diffusion:</strong>{" "}
-                        {data.audio_config.diffusion.mode.join(", ")} (
-                        {data.audio_config.diffusion.approx_nb_enceintes}{" "}
+                        {data.audio_config.diffusion.mode?.join(", ") || "N/A"} (
+                        {data.audio_config.diffusion.approx_nb_enceintes || 0}{" "}
                         enceintes approx.)
                       </div>
                     )}
