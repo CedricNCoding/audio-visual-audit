@@ -271,6 +271,23 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     toast.success("Texte copié dans le presse-papier");
   };
 
+  const downloadTextFile = () => {
+    if (!exportText) {
+      toast.error("Générez d'abord le texte structuré");
+      return;
+    }
+    const blob = new Blob([exportText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `compte-rendu-${room?.name || "salle"}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Fichier texte téléchargé");
+  };
+
   return (
     <div className="space-y-4">
       <Card className="glass neon-border-yellow p-6">
@@ -291,177 +308,17 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
             <Button onClick={generateExportText} className="flex-1">
               Générer texte structuré
             </Button>
+            <Button onClick={downloadTextFile} variant="secondary">
+              <Download className="h-4 w-4 mr-2" />
+              Télécharger .txt
+            </Button>
             <Button onClick={copyToClipboard} variant="secondary">
               <Copy className="h-4 w-4 mr-2" />
-              Copier le texte
+              Copier
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Note : L'export PDF sera disponible prochainement
-          </p>
         </CardContent>
       </Card>
-      
-      <Card className="glass neon-border-yellow">
-        <CardHeader>
-          <CardTitle className="neon-yellow">A. Informations Projet</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p><strong>Client:</strong> {room?.projects?.client_name || "N/A"}</p>
-          <p><strong>Site:</strong> {room?.projects?.site_name || "N/A"}</p>
-          <p><strong>Contact:</strong> {room?.projects?.contact_name || "N/A"}</p>
-          <p><strong>Service décideur:</strong> {room?.projects?.decision_service || "N/A"}</p>
-          <p><strong>Contact décideur:</strong> {room?.projects?.decision_contact || "N/A"}</p>
-          <p><strong>Date de décision:</strong> {room?.projects?.decision_date || "N/A"}</p>
-        </CardContent>
-      </Card>
-
-      <Card className="glass neon-border-yellow">
-        <CardHeader>
-          <CardTitle className="neon-yellow">B. Informations Salle</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p><strong>Nom:</strong> {room?.name}</p>
-          <p><strong>Typologie:</strong> {room?.typology || "N/A"}</p>
-          {roomUsage && (
-            <>
-              <p><strong>Nombre de personnes:</strong> {roomUsage.nombre_personnes || "N/A"}</p>
-              <p><strong>Usage principal:</strong> {roomUsage.main_usage || "N/A"}</p>
-              <p><strong>Intensité d'usage:</strong> {roomUsage.usage_intensity || "N/A"}</p>
-              <p><strong>Niveau de compétence:</strong> {roomUsage.user_skill_level || "N/A"}</p>
-              <p><strong>Plateforme visio:</strong> {roomUsage.platform_type || "N/A"}</p>
-              <p><strong>Réservation:</strong> {roomUsage.reservation_salle ? "Oui" : "Non"}</p>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {roomEnvironment && (
-        <Card className="glass neon-border-blue">
-          <CardHeader>
-            <CardTitle className="neon-blue">C. Environnement</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p><strong>Dimensions:</strong> {roomEnvironment.length_m || "?"}m × {roomEnvironment.width_m || "?"}m × {roomEnvironment.height_m || "?"}m</p>
-            <p><strong>Matériaux murs:</strong> {roomEnvironment.wall_material || "N/A"}</p>
-            <p><strong>Matériaux sol:</strong> {roomEnvironment.floor_material || "N/A"}</p>
-            <p><strong>Matériaux plafond:</strong> {roomEnvironment.ceiling_material || "N/A"}</p>
-            <p><strong>Plancher technique:</strong> {roomEnvironment.has_raised_floor ? "Oui" : "Non"}</p>
-            <p><strong>Faux plafond:</strong> {roomEnvironment.has_false_ceiling ? "Oui" : "Non"}</p>
-            <p><strong>Luminosité:</strong> {roomEnvironment.brightness_level || "N/A"}</p>
-            <p><strong>Problème acoustique:</strong> {roomEnvironment.has_acoustic_issue ? "Oui" : "Non"}</p>
-            {roomEnvironment.acoustic_comment && (
-              <p><strong>Commentaire:</strong> {roomEnvironment.acoustic_comment}</p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {roomVisio && (
-        <Card className="glass neon-border-blue">
-          <CardHeader>
-            <CardTitle className="neon-blue">D. Visio & Streaming</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p><strong>Visio nécessaire:</strong> {roomVisio.visio_required ? "Oui" : "Non"}</p>
-            <p><strong>Besoin en streaming:</strong> {roomVisio.streaming_enabled ? "Oui" : "Non"}</p>
-            <p><strong>Voir / Être vu:</strong> {roomVisio.need_to_see ? "Oui" : "Non"} / {roomVisio.need_to_be_seen ? "Oui" : "Non"}</p>
-            <p><strong>Entendre / Être entendu:</strong> {roomVisio.need_to_hear ? "Oui" : "Non"} / {roomVisio.need_to_be_heard ? "Oui" : "Non"}</p>
-            <p><strong>Caméras:</strong> {roomVisio.camera_count || 0} {roomVisio.camera_types?.length > 0 && `(${roomVisio.camera_types.join(", ")})`}</p>
-            <p><strong>Micros:</strong> {roomVisio.mic_count || 0} {roomVisio.mic_types?.length > 0 && `(${roomVisio.mic_types.join(", ")})`}</p>
-            {roomVisio.streaming_enabled && (
-              <>
-                <p><strong>Type streaming:</strong> {roomVisio.streaming_type || "N/A"}</p>
-                <p><strong>Plateforme:</strong> {roomVisio.streaming_platform || "N/A"}</p>
-                <p><strong>Complexité:</strong> {roomVisio.streaming_complexity || "N/A"}</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {sources && sources.length > 0 && (
-        <Card className="glass">
-          <CardHeader>
-            <CardTitle>E. Sources en Régie ({sources.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-1">
-              {sources.map((s) => (
-                <li key={s.id}>• {s.source_type} - Quantité: {s.quantity}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {displays && displays.length > 0 && (
-        <Card className="glass">
-          <CardHeader>
-            <CardTitle>F. Diffuseurs ({displays.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {displays.map((d) => (
-                <li key={d.id} className="border-b pb-2 last:border-0">
-                  <p><strong>{d.display_type}</strong> - {d.size_inches}" - {d.position}</p>
-                  {d.display_type === "Vidéoprojecteur" && (
-                    <p className="text-sm text-muted-foreground">
-                      {d.distance_projection_m && `Distance projection: ${d.distance_projection_m}m`}
-                      {d.base_ecran_cm && ` • Base: ${d.base_ecran_cm}cm`}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {connectivityZones && connectivityZones.length > 0 && (
-        <Card className="glass">
-          <CardHeader>
-            <CardTitle>G. Connectique Utilisateur ({connectivityZones.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {connectivityZones.map((zone) => (
-                <li key={zone.id} className="border-b pb-2 last:border-0">
-                  <p><strong>{zone.zone_name}</strong></p>
-                  <div className="text-sm text-muted-foreground">
-                    {zone.hdmi_count > 0 && <span>HDMI: {zone.hdmi_count} • </span>}
-                    {zone.usbc_count > 0 && <span>USB-C: {zone.usbc_count} • </span>}
-                    {zone.displayport_count > 0 && <span>DisplayPort: {zone.displayport_count} • </span>}
-                    {zone.rj45_count > 0 && <span>RJ45: {zone.rj45_count}</span>}
-                    {zone.distance_to_control_room_m > 0 && (
-                      <p className="text-primary">Distance vers régie: {zone.distance_to_control_room_m}m</p>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {cables && cables.length > 0 && (
-        <Card className="glass">
-          <CardHeader>
-            <CardTitle>H. Liaisons & Câbles ({cables.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {cables.map((cable) => (
-                <li key={cable.id} className="border-b pb-2 last:border-0">
-                  <p><strong>{cable.point_a} → {cable.point_b}</strong></p>
-                  <p className="text-sm">Signal: {cable.signal_type} • Distance: {cable.distance_m}m (marge: {cable.distance_with_margin_m}m)</p>
-                  <p className="text-sm text-primary">💡 {cable.cable_recommendation}</p>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

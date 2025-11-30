@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Trash2, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
 
 interface PhotosManagerProps {
@@ -71,6 +71,28 @@ export const PhotosManager = ({ roomId }: PhotosManagerProps) => {
     return data.publicUrl;
   };
 
+  const downloadPhoto = async (fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from("room-photos")
+        .download(`${roomId}/${fileName}`);
+      
+      if (error) throw error;
+      
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Photo téléchargée");
+    } catch (error: any) {
+      toast.error("Erreur lors du téléchargement : " + error.message);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="glass neon-border-yellow p-4 rounded-lg space-y-4">
@@ -105,14 +127,22 @@ export const PhotosManager = ({ roomId }: PhotosManagerProps) => {
                 alt={photo.name}
                 className="w-full h-48 object-cover rounded"
               />
-              <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => deletePhoto.mutate(photo.name)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => downloadPhoto(photo.name)}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => deletePhoto.mutate(photo.name)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground mt-2 truncate">
                 {photo.name}
               </p>
