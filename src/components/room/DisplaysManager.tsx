@@ -107,12 +107,15 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
             ))}
           </SelectContent>
         </Select>
-        <Input
-          type="number"
-          placeholder="Taille (pouces)"
-          value={newDisplay.size_inches || ""}
-          onChange={(e) => setNewDisplay({ ...newDisplay, size_inches: parseInt(e.target.value) || 0 })}
-        />
+        {/* Ne pas afficher taille_pouces pour les vidéoprojecteurs */}
+        {newDisplay.display_type !== "Vidéoprojecteur" && (
+          <Input
+            type="number"
+            placeholder="Taille (pouces)"
+            value={newDisplay.size_inches || ""}
+            onChange={(e) => setNewDisplay({ ...newDisplay, size_inches: parseInt(e.target.value) || 0 })}
+          />
+        )}
         <Select
           value={newDisplay.position}
           onValueChange={(value) => setNewDisplay({ ...newDisplay, position: value })}
@@ -168,10 +171,12 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
             <Card key={display.id} className="p-4 flex justify-between items-center glass">
               <div>
                 <p className="font-medium">
-                  {display.display_type} {display.size_inches}"
-                  {calculatedInches && calculatedInches !== display.size_inches && (
-                    <span className="text-xs text-muted-foreground ml-2">(calculé: {calculatedInches}")</span>
-                  )}
+                  {display.display_type}
+                  {display.display_type === "Vidéoprojecteur" && calculatedInches
+                    ? ` ${calculatedInches}"`
+                    : display.size_inches
+                    ? ` ${display.size_inches}"`
+                    : ""}
                 </p>
                 <p className="text-sm text-muted-foreground">{display.position}</p>
                 {display.display_type === "Vidéoprojecteur" && (display.distance_projection_m || display.base_ecran_cm) && (
