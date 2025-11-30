@@ -767,36 +767,6 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
           </CardContent>
         </Card>
 
-        <Card className="glass neon-border-yellow p-6">
-        <CardHeader>
-          <CardTitle className="neon-yellow">Export texte structuré</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Texte d'export structuré</Label>
-            <textarea
-              className="w-full h-96 p-4 bg-background/50 border border-border rounded-lg text-sm font-mono"
-              value={exportText}
-              readOnly
-              placeholder="Cliquez sur 'Générer texte structuré' pour créer le compte-rendu..."
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={generateExportText} className="flex-1">
-              Générer texte structuré
-            </Button>
-            <Button onClick={downloadTextFile} variant="secondary">
-              <Download className="h-4 w-4 mr-2" />
-              Télécharger .txt
-            </Button>
-            <Button onClick={copyToClipboard} variant="secondary">
-              <Copy className="h-4 w-4 mr-2" />
-              Copier
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* AI Analysis Results Summary */}
       {room?.resume_technique_ia && (
         <Card className="glass neon-border-blue p-6">
