@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +6,9 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Save } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Save, Trash2, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 import { RoomUsageForm } from "@/components/room/RoomUsageForm";
 import { RoomEnvironmentForm } from "@/components/room/RoomEnvironmentForm";
@@ -23,6 +25,8 @@ const RoomDetail = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("usage");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [roomName, setRoomName] = useState("");
 
   const { data: room } = useQuery({
     queryKey: ["room", roomId],
@@ -126,6 +130,59 @@ const RoomDetail = () => {
   const [environmentData, setEnvironmentData] = useState(roomEnvironment || {});
   const [visioData, setVisioData] = useState(roomVisio || {});
 
+  // Update form data when queries complete
+  useEffect(() => {
+    if (roomUsage) setUsageData(roomUsage);
+  }, [roomUsage]);
+
+  useEffect(() => {
+    if (roomEnvironment) setEnvironmentData(roomEnvironment);
+  }, [roomEnvironment]);
+
+  useEffect(() => {
+    if (roomVisio) setVisioData(roomVisio);
+  }, [roomVisio]);
+
+  useEffect(() => {
+    if (room) setRoomName(room.name);
+  }, [room]);
+
+  const updateRoomName = useMutation({
+    mutationFn: async (name: string) => {
+      const { error } = await supabase
+        .from("rooms")
+        .update({ name })
+        .eq("id", roomId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["room", roomId] });
+      setIsEditingName(false);
+      toast.success("Nom de la salle mis à jour");
+    },
+  });
+
+  const deleteRoom = useMutation({
+    mutationFn: async () => {
+      // Delete related data first
+      await supabase.from("cables").delete().eq("room_id", roomId);
+      await supabase.from("connectivity_zones").delete().eq("room_id", roomId);
+      await supabase.from("displays").delete().eq("room_id", roomId);
+      await supabase.from("sources").delete().eq("room_id", roomId);
+      await supabase.from("room_visio").delete().eq("room_id", roomId);
+      await supabase.from("room_environment").delete().eq("room_id", roomId);
+      await supabase.from("room_usage").delete().eq("room_id", roomId);
+      
+      // Delete the room
+      const { error } = await supabase.from("rooms").delete().eq("id", roomId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Salle supprimée");
+      navigate(`/projects/${room?.project_id}`);
+    },
+  });
+
   const handleSave = () => {
     switch (activeTab) {
       case "usage":
@@ -137,6 +194,14 @@ const RoomDetail = () => {
       case "visio":
         saveVisio.mutate(visioData);
         break;
+    }
+  };
+
+  const handleSaveName = () => {
+    if (roomName && roomName !== room?.name) {
+      updateRoomName.mutate(roomName);
+    } else {
+      setIsEditingName(false);
     }
   };
 
@@ -153,11 +218,59 @@ const RoomDetail = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h2 className="text-3xl font-bold">{room?.name}</h2>
+            {isEditingName ? (
+              <div className="flex gap-2 items-center">
+                <Input
+                  value={roomName}
+                  onChange={(e) => setRoomName(e.target.value)}
+                  className="text-2xl font-bold"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveName();
+                    if (e.key === "Escape") setIsEditingName(false);
+                  }}
+                  autoFocus
+                />
+                <Button size="sm" onClick={handleSaveName}>Sauvegarder</Button>
+                <Button size="sm" variant="ghost" onClick={() => setIsEditingName(false)}>Annuler</Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h2 className="text-3xl font-bold">{room?.name}</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsEditingName(true)}
+                  className="h-8 w-8"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             <p className="text-muted-foreground">
               {room?.projects?.client_name} - {room?.typology || "Sans typologie"}
             </p>
           </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="icon">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Supprimer la salle ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Cette action est irréversible. Toutes les données liées à cette salle (sources, diffuseurs, connectique, liaisons) seront supprimées.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteRoom.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Supprimer
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           {["usage", "environment", "visio"].includes(activeTab) && (
             <Button onClick={handleSave} className="gap-2">
               <Save className="h-4 w-4" />
