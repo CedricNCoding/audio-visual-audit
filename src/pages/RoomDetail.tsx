@@ -405,8 +405,6 @@ const RoomDetail = () => {
                   totalSteps={steps.length}
                   onNext={handleNext}
                   onPrevious={handlePrevious}
-                  onSave={handleSave}
-                  showSave
                 />
               </CardContent>
             </Card>
@@ -430,8 +428,6 @@ const RoomDetail = () => {
                   totalSteps={steps.length}
                   onNext={handleNext}
                   onPrevious={handlePrevious}
-                  onSave={handleSave}
-                  showSave
                 />
               </CardContent>
             </Card>
@@ -455,8 +451,6 @@ const RoomDetail = () => {
                   totalSteps={steps.length}
                   onNext={handleNext}
                   onPrevious={handlePrevious}
-                  onSave={handleSave}
-                  showSave
                 />
               </CardContent>
             </Card>
@@ -520,8 +514,6 @@ const RoomDetail = () => {
                   totalSteps={steps.length}
                   onNext={handleNext}
                   onPrevious={handlePrevious}
-                  onSave={handleSave}
-                  showSave
                 />
               </CardContent>
             </Card>

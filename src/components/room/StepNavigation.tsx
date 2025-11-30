@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Save } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StepNavigationProps {
@@ -7,9 +7,7 @@ interface StepNavigationProps {
   totalSteps: number;
   onNext: () => void;
   onPrevious: () => void;
-  onSave?: () => void;
   canGoNext?: boolean;
-  showSave?: boolean;
 }
 
 export const StepNavigation = ({ 
@@ -17,9 +15,7 @@ export const StepNavigation = ({
   totalSteps, 
   onNext, 
   onPrevious, 
-  onSave,
-  canGoNext = true,
-  showSave = false
+  canGoNext = true
 }: StepNavigationProps) => {
   const isMobile = useIsMobile();
   
@@ -40,18 +36,6 @@ export const StepNavigation = ({
         <div className="text-sm text-muted-foreground">
           Étape {currentStep} sur {totalSteps}
         </div>
-      )}
-      
-      {showSave && onSave && (
-        <Button
-          variant="outline"
-          onClick={onSave}
-          className="flex-1 md:flex-none"
-          size={isMobile ? "sm" : "default"}
-        >
-          <Save className="h-4 w-4 mr-2" />
-          Sauvegarder
-        </Button>
       )}
       
       <Button
