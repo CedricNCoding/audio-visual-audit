@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { RoomUsageForm } from "@/components/room/RoomUsageForm";
 import { RoomEnvironmentForm } from "@/components/room/RoomEnvironmentForm";
 import { RoomVisioForm } from "@/components/room/RoomVisioForm";
+import { RoomSonorizationForm } from "@/components/room/RoomSonorizationForm";
 import { SourcesManager } from "@/components/room/SourcesManager";
 import { DisplaysManager } from "@/components/room/DisplaysManager";
 import { ConnectivityManager } from "@/components/room/ConnectivityManager";
@@ -84,6 +85,20 @@ const RoomDetail = () => {
     },
   });
 
+  const { data: roomSonorization } = useQuery({
+    queryKey: ["room_sonorization", roomId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("room_sonorization")
+        .select("*")
+        .eq("room_id", roomId)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const saveUsage = useMutation({
     mutationFn: async (data: any) => {
       const { error } = await supabase
@@ -126,9 +141,24 @@ const RoomDetail = () => {
     },
   });
 
+  const saveSonorization = useMutation({
+    mutationFn: async (data: any) => {
+      const { error } = await supabase
+        .from("room_sonorization")
+        .upsert({ ...data, room_id: roomId });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["room_sonorization", roomId] });
+      toast.success("Sonorisation sauvegardée");
+    },
+  });
+
   const [usageData, setUsageData] = useState(roomUsage || {});
   const [environmentData, setEnvironmentData] = useState(roomEnvironment || {});
   const [visioData, setVisioData] = useState(roomVisio || {});
+  const [sonorizationData, setSonorizationData] = useState(roomSonorization || {});
 
   // Update form data when queries complete
   useEffect(() => {
@@ -142,6 +172,10 @@ const RoomDetail = () => {
   useEffect(() => {
     if (roomVisio) setVisioData(roomVisio);
   }, [roomVisio]);
+
+  useEffect(() => {
+    if (roomSonorization) setSonorizationData(roomSonorization);
+  }, [roomSonorization]);
 
   useEffect(() => {
     if (room) setRoomName(room.name);
@@ -170,6 +204,7 @@ const RoomDetail = () => {
       await supabase.from("displays").delete().eq("room_id", roomId);
       await supabase.from("sources").delete().eq("room_id", roomId);
       await supabase.from("room_visio").delete().eq("room_id", roomId);
+      await supabase.from("room_sonorization").delete().eq("room_id", roomId);
       await supabase.from("room_environment").delete().eq("room_id", roomId);
       await supabase.from("room_usage").delete().eq("room_id", roomId);
       
@@ -194,6 +229,9 @@ const RoomDetail = () => {
       case "visio":
         saveVisio.mutate(visioData);
         break;
+      case "sonorization":
+        saveSonorization.mutate(sonorizationData);
+        break;
     }
   };
 
@@ -205,8 +243,8 @@ const RoomDetail = () => {
     }
   };
 
-  const steps = ["usage", "environment", "visio", "sources", "displays", "connectivity", "cables", "photos", "summary"];
-  const stepNames = ["Usage", "Environnement", "Visio", "Sources", "Diffuseurs", "Connectique", "Liaisons", "Photos", "Résumé"];
+  const steps = ["usage", "environment", "visio", "sources", "displays", "sonorization", "connectivity", "cables", "photos", "summary"];
+  const stepNames = ["Usage", "Environnement", "Visio", "Sources", "Diffuseurs", "Sonorisation", "Connectique", "Liaisons", "Photos", "Résumé"];
   const currentStepIndex = steps.indexOf(activeTab);
 
   return (
@@ -275,7 +313,7 @@ const RoomDetail = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          {["usage", "environment", "visio"].includes(activeTab) && (
+          {["usage", "environment", "visio", "sonorization"].includes(activeTab) && (
             <Button onClick={handleSave} className="gap-2">
               <Save className="h-4 w-4" />
               Sauvegarder
@@ -324,6 +362,7 @@ const RoomDetail = () => {
             <TabsTrigger value="visio" className="data-[state=active]:neon-border-blue">Visio</TabsTrigger>
             <TabsTrigger value="sources" className="data-[state=active]:neon-border-blue">Sources</TabsTrigger>
             <TabsTrigger value="displays" className="data-[state=active]:neon-border-blue">Diffuseurs</TabsTrigger>
+            <TabsTrigger value="sonorization" className="data-[state=active]:neon-border-blue">Sonorisation</TabsTrigger>
             <TabsTrigger value="connectivity" className="data-[state=active]:neon-border-blue">Connectique</TabsTrigger>
             <TabsTrigger value="cables" className="data-[state=active]:neon-border-blue">Liaisons</TabsTrigger>
             <TabsTrigger value="photos" className="data-[state=active]:neon-border-blue">Photos</TabsTrigger>
@@ -405,6 +444,23 @@ const RoomDetail = () => {
               </CardHeader>
               <CardContent>
                 <DisplaysManager roomId={roomId!} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="sonorization">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sonorisation</CardTitle>
+                <CardDescription>
+                  Configuration de la sonorisation de la salle
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RoomSonorizationForm
+                  data={sonorizationData}
+                  onChange={setSonorizationData}
+                />
               </CardContent>
             </Card>
           </TabsContent>

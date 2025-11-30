@@ -65,6 +65,19 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     },
   });
 
+  const { data: roomSonorization } = useQuery({
+    queryKey: ["room_sonorization", roomId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("room_sonorization")
+        .select("*")
+        .eq("room_id", roomId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: sources } = useQuery({
     queryKey: ["sources", roomId],
     queryFn: async () => {
@@ -202,10 +215,33 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       text += `\n`;
     }
 
-    // Section 7 – Connectique utilisateur
+    // Section 7 – Sonorisation
+    if (roomSonorization) {
+      text += `┌─────────────────────────────────────────────────────┐\n`;
+      text += `│ Section 7 – SONORISATION                            │\n`;
+      text += `└─────────────────────────────────────────────────────┘\n`;
+      text += `• Sonorisation d'ambiance : ${roomSonorization.ambiance_necessaire ? `Oui - ${roomSonorization.ambiance_type || "N/A"}` : "Non"}\n`;
+      text += `• Sonorisation de puissance : ${roomSonorization.puissance_necessaire ? `Oui - ${roomSonorization.puissance_niveau || "N/A"}` : "Non"}\n`;
+      text += `• Diffusion homogène : ${roomSonorization.diffusion_homogene ? `Oui - ${roomSonorization.type_diffusion?.join(", ") || "N/A"}` : "Non"}\n`;
+      if (roomSonorization.renforcement_voix) {
+        text += `• Renforcement voix : Oui - ${roomSonorization.nb_micros_renfort || 0} micros (${roomSonorization.types_micros_renfort?.join(", ") || "N/A"})${roomSonorization.mixage_multiple ? " - Mixage multiple" : ""}\n`;
+      } else {
+        text += `• Renforcement voix : Non\n`;
+      }
+      text += `• Acoustique : ${roomSonorization.objectif_acoustique || "N/A"}\n`;
+      text += `• Retour sonore : ${roomSonorization.retour_necessaire ? `Oui - ${roomSonorization.retour_type || "N/A"}` : "Non"}\n`;
+      text += `• Risque de larsen : ${roomSonorization.larsen_risque ? "Oui" : "Non"}\n`;
+      if (roomSonorization.sources_audio_specifiques) {
+        text += `• Sources audio spécifiques : ${roomSonorization.sources_audio_specifiques}\n`;
+      }
+      text += `• Traitement audio : DSP ${roomSonorization.dsp_necessaire ? "Oui" : "Non"} - Dante ${roomSonorization.dante_souhaite ? "Oui" : "Non"}\n`;
+      text += `\n`;
+    }
+
+    // Section 8 – Connectique utilisateur
     if (connectivityZones && connectivityZones.length > 0) {
       text += `┌─────────────────────────────────────────────────────┐\n`;
-      text += `│ Section 7 – CONNECTIQUE UTILISATEUR                 │\n`;
+      text += `│ Section 8 – CONNECTIQUE UTILISATEUR                 │\n`;
       text += `└─────────────────────────────────────────────────────┘\n`;
       connectivityZones.forEach((zone) => {
         const parts = [];
@@ -222,10 +258,10 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       text += `\n`;
     }
 
-    // Section 8 – Liaisons & câbles
+    // Section 9 – Liaisons & câbles
     if (cables && cables.length > 0) {
       text += `┌─────────────────────────────────────────────────────┐\n`;
-      text += `│ Section 8 – LIAISONS & CÂBLES                       │\n`;
+      text += `│ Section 9 – LIAISONS & CÂBLES                       │\n`;
       text += `└─────────────────────────────────────────────────────┘\n`;
       cables.forEach((cable) => {
         text += `• ${cable.point_a} → ${cable.point_b} – ${cable.signal_type} – ${cable.distance_m}m (${cable.distance_with_margin_m}m avec marge) – ${cable.cable_recommendation}\n`;
@@ -233,9 +269,9 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       text += `\n`;
     }
 
-    // Section 9 – Synthèse
+    // Section 10 – Synthèse
     text += `┌─────────────────────────────────────────────────────┐\n`;
-    text += `│ Section 9 – SYNTHÈSE                                │\n`;
+    text += `│ Section 10 – SYNTHÈSE                               │\n`;
     text += `└─────────────────────────────────────────────────────┘\n`;
     
     // Calculate recommendation

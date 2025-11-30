@@ -363,6 +363,78 @@ export type Database = {
           },
         ]
       }
+      room_sonorization: {
+        Row: {
+          ambiance_necessaire: boolean | null
+          ambiance_type: string | null
+          created_at: string
+          dante_souhaite: boolean | null
+          diffusion_homogene: boolean | null
+          dsp_necessaire: boolean | null
+          id: string
+          larsen_risque: boolean | null
+          mixage_multiple: boolean | null
+          nb_micros_renfort: number | null
+          objectif_acoustique: string | null
+          puissance_necessaire: boolean | null
+          puissance_niveau: string | null
+          renforcement_voix: boolean | null
+          retour_necessaire: boolean | null
+          retour_type: string | null
+          room_id: string
+          sources_audio_specifiques: string | null
+          type_diffusion: string[] | null
+          types_micros_renfort: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          ambiance_necessaire?: boolean | null
+          ambiance_type?: string | null
+          created_at?: string
+          dante_souhaite?: boolean | null
+          diffusion_homogene?: boolean | null
+          dsp_necessaire?: boolean | null
+          id?: string
+          larsen_risque?: boolean | null
+          mixage_multiple?: boolean | null
+          nb_micros_renfort?: number | null
+          objectif_acoustique?: string | null
+          puissance_necessaire?: boolean | null
+          puissance_niveau?: string | null
+          renforcement_voix?: boolean | null
+          retour_necessaire?: boolean | null
+          retour_type?: string | null
+          room_id: string
+          sources_audio_specifiques?: string | null
+          type_diffusion?: string[] | null
+          types_micros_renfort?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          ambiance_necessaire?: boolean | null
+          ambiance_type?: string | null
+          created_at?: string
+          dante_souhaite?: boolean | null
+          diffusion_homogene?: boolean | null
+          dsp_necessaire?: boolean | null
+          id?: string
+          larsen_risque?: boolean | null
+          mixage_multiple?: boolean | null
+          nb_micros_renfort?: number | null
+          objectif_acoustique?: string | null
+          puissance_necessaire?: boolean | null
+          puissance_niveau?: string | null
+          renforcement_voix?: boolean | null
+          retour_necessaire?: boolean | null
+          retour_type?: string | null
+          room_id?: string
+          sources_audio_specifiques?: string | null
+          type_diffusion?: string[] | null
+          types_micros_renfort?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       room_usage: {
         Row: {
           automation_acoustic: boolean | null
