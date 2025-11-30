@@ -544,6 +544,21 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       });
     }
 
+    // Schéma et matériaux de la salle
+    if (roomEnvironment && (roomEnvironment.length_m || roomEnvironment.width_m)) {
+      md += `## 📐 Plan de la salle (simplifié)\n\n`;
+      if (roomEnvironment.length_m && roomEnvironment.width_m) {
+        md += `Salle rectangulaire : ${roomEnvironment.length_m} × ${roomEnvironment.width_m} m\n\n`;
+      }
+      md += `**Matériaux des murs (vue de dessus) :**\n`;
+      if (roomEnvironment.mur_a_materiau) md += `- Mur A (haut) : ${roomEnvironment.mur_a_materiau}\n`;
+      if (roomEnvironment.mur_b_materiau) md += `- Mur B (droite) : ${roomEnvironment.mur_b_materiau}\n`;
+      if (roomEnvironment.mur_c_materiau) md += `- Mur C (bas) : ${roomEnvironment.mur_c_materiau}\n`;
+      if (roomEnvironment.mur_d_materiau) md += `- Mur D (gauche) : ${roomEnvironment.mur_d_materiau}\n`;
+      if (roomEnvironment.mur_principal) md += `\n**Mur principal (diffuseur)** : Mur ${roomEnvironment.mur_principal}\n`;
+      md += `\n`;
+    }
+
     // Photos de la salle
     if (photos && photos.length > 0) {
       md += `## 🖼️ Photos de la salle\n\n`;
@@ -774,6 +789,98 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
 {notionStyleReport}
               </pre>
             </div>
+
+            {/* Mini-plan de la salle */}
+            {roomEnvironment && roomEnvironment.length_m && roomEnvironment.width_m && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold neon-blue flex items-center gap-2">
+                  📐 Plan de la salle (simplifié)
+                </h3>
+                <div className="glass neon-border-blue p-4 rounded-lg">
+                  <div className="flex justify-center mb-4">
+                    {(() => {
+                      const maxWidth = 300;
+                      const ratio = roomEnvironment.width_m / roomEnvironment.length_m;
+                      const svgWidth = Math.min(maxWidth, ratio > 1 ? maxWidth : maxWidth * ratio);
+                      const svgHeight = ratio > 1 ? svgWidth / ratio : svgWidth;
+                      
+                      return (
+                        <svg width={svgWidth + 100} height={svgHeight + 100} className="border border-border/20 rounded-lg bg-background/20">
+                          {/* Mur A (haut) */}
+                          <line
+                            x1={50}
+                            y1={50}
+                            x2={50 + svgWidth}
+                            y2={50}
+                            className={`stroke-[2px] fill-none ${roomEnvironment.mur_principal === 'A' ? 'stroke-primary neon-border-blue stroke-[4px]' : 'stroke-border'}`}
+                          />
+                          <text x={50 + svgWidth / 2} y={40} textAnchor="middle" className="fill-foreground text-xs">
+                            {roomEnvironment.mur_a_materiau ? `A - ${roomEnvironment.mur_a_materiau}` : "A"}
+                            {roomEnvironment.mur_principal === "A" && " 🖥️"}
+                          </text>
+
+                          {/* Mur B (droite) */}
+                          <line
+                            x1={50 + svgWidth}
+                            y1={50}
+                            x2={50 + svgWidth}
+                            y2={50 + svgHeight}
+                            className={`stroke-[2px] fill-none ${roomEnvironment.mur_principal === 'B' ? 'stroke-primary neon-border-blue stroke-[4px]' : 'stroke-border'}`}
+                          />
+                          <text x={60 + svgWidth} y={50 + svgHeight / 2} textAnchor="start" className="fill-foreground text-xs">
+                            {roomEnvironment.mur_b_materiau ? `B - ${roomEnvironment.mur_b_materiau}` : "B"}
+                            {roomEnvironment.mur_principal === "B" && " 🖥️"}
+                          </text>
+
+                          {/* Mur C (bas) */}
+                          <line
+                            x1={50}
+                            y1={50 + svgHeight}
+                            x2={50 + svgWidth}
+                            y2={50 + svgHeight}
+                            className={`stroke-[2px] fill-none ${roomEnvironment.mur_principal === 'C' ? 'stroke-primary neon-border-blue stroke-[4px]' : 'stroke-border'}`}
+                          />
+                          <text x={50 + svgWidth / 2} y={65 + svgHeight} textAnchor="middle" className="fill-foreground text-xs">
+                            {roomEnvironment.mur_c_materiau ? `C - ${roomEnvironment.mur_c_materiau}` : "C"}
+                            {roomEnvironment.mur_principal === "C" && " 🖥️"}
+                          </text>
+
+                          {/* Mur D (gauche) */}
+                          <line
+                            x1={50}
+                            y1={50}
+                            x2={50}
+                            y2={50 + svgHeight}
+                            className={`stroke-[2px] fill-none ${roomEnvironment.mur_principal === 'D' ? 'stroke-primary neon-border-blue stroke-[4px]' : 'stroke-border'}`}
+                          />
+                          <text x={40} y={50 + svgHeight / 2} textAnchor="end" className="fill-foreground text-xs">
+                            {roomEnvironment.mur_d_materiau ? `D - ${roomEnvironment.mur_d_materiau}` : "D"}
+                            {roomEnvironment.mur_principal === "D" && " 🖥️"}
+                          </text>
+
+                          {/* Dimensions */}
+                          <text x={50 + svgWidth / 2} y={svgHeight + 85} textAnchor="middle" className="fill-muted-foreground text-xs">
+                            {roomEnvironment.width_m} m
+                          </text>
+                          <text x={25} y={50 + svgHeight / 2} textAnchor="middle" className="fill-muted-foreground text-xs" transform={`rotate(-90 25 ${50 + svgHeight / 2})`}>
+                            {roomEnvironment.length_m} m
+                          </text>
+                        </svg>
+                      );
+                    })()}
+                  </div>
+                  <div className="text-sm space-y-1">
+                    {roomEnvironment.mur_a_materiau && <p>• Mur A (haut) : {roomEnvironment.mur_a_materiau}</p>}
+                    {roomEnvironment.mur_b_materiau && <p>• Mur B (droite) : {roomEnvironment.mur_b_materiau}</p>}
+                    {roomEnvironment.mur_c_materiau && <p>• Mur C (bas) : {roomEnvironment.mur_c_materiau}</p>}
+                    {roomEnvironment.mur_d_materiau && <p>• Mur D (gauche) : {roomEnvironment.mur_d_materiau}</p>}
+                    {roomEnvironment.mur_principal && (
+                      <p className="neon-blue font-semibold mt-2">🖥️ Mur principal (diffuseur) : Mur {roomEnvironment.mur_principal}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Affichage visuel des photos */}
             {photos && photos.length > 0 && (

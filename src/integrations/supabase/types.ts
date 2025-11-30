@@ -350,6 +350,11 @@ export type Database = {
           height_m: number | null
           id: string
           length_m: number | null
+          mur_a_materiau: string | null
+          mur_b_materiau: string | null
+          mur_c_materiau: string | null
+          mur_d_materiau: string | null
+          mur_principal: string | null
           room_id: string
           updated_at: string
           wall_material: string | null
@@ -367,6 +372,11 @@ export type Database = {
           height_m?: number | null
           id?: string
           length_m?: number | null
+          mur_a_materiau?: string | null
+          mur_b_materiau?: string | null
+          mur_c_materiau?: string | null
+          mur_d_materiau?: string | null
+          mur_principal?: string | null
           room_id: string
           updated_at?: string
           wall_material?: string | null
@@ -384,6 +394,11 @@ export type Database = {
           height_m?: number | null
           id?: string
           length_m?: number | null
+          mur_a_materiau?: string | null
+          mur_b_materiau?: string | null
+          mur_c_materiau?: string | null
+          mur_d_materiau?: string | null
+          mur_principal?: string | null
           room_id?: string
           updated_at?: string
           wall_material?: string | null
