@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,6 +14,13 @@ const Settings = () => {
   const queryClient = useQueryClient();
   const [newCameraType, setNewCameraType] = useState("");
   const [newMicType, setNewMicType] = useState("");
+  const [aiSettings, setAiSettings] = useState({
+    provider: "openai",
+    model_name: "gpt-4.1-2025-04-14",
+    api_key: "",
+    max_hdmi_m: 5,
+    max_hdbaset_m: 40,
+  });
 
   const { data: cameraTypes } = useQuery({
     queryKey: ["camera_types"],
@@ -30,6 +39,36 @@ const Settings = () => {
       return data;
     },
   });
+
+  // Fetch AI settings
+  const { data: aiSettingsData } = useQuery({
+    queryKey: ["ai_settings"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      
+      const { data, error } = await supabase
+        .from("ai_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (aiSettingsData) {
+      setAiSettings({
+        provider: aiSettingsData.provider || "openai",
+        model_name: aiSettingsData.model_name || "gpt-4.1-2025-04-14",
+        api_key: aiSettingsData.api_key || "",
+        max_hdmi_m: aiSettingsData.max_hdmi_m || 5,
+        max_hdbaset_m: aiSettingsData.max_hdbaset_m || 40,
+      });
+    }
+  }, [aiSettingsData]);
 
   const addCameraType = useMutation({
     mutationFn: async (name: string) => {
@@ -77,9 +116,108 @@ const Settings = () => {
     },
   });
 
+  const saveAiSettings = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("ai_settings")
+        .upsert({
+          user_id: user.id,
+          provider: aiSettings.provider,
+          model_name: aiSettings.model_name,
+          api_key: aiSettings.api_key,
+          max_hdmi_m: aiSettings.max_hdmi_m,
+          max_hdbaset_m: aiSettings.max_hdbaset_m,
+        });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ai_settings"] });
+      toast.success("Paramètres IA sauvegardés");
+    },
+  });
+
   return (
     <AppLayout title="Paramètres">
       <div className="space-y-6">
+        <Card className="glass neon-border-yellow">
+          <CardHeader>
+            <CardTitle className="neon-yellow">Paramètres IA</CardTitle>
+            <CardDescription>
+              Configurez l'intelligence artificielle pour l'analyse des salles
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Modèle IA</Label>
+              <Select
+                value={aiSettings.model_name}
+                onValueChange={(value) =>
+                  setAiSettings({ ...aiSettings, model_name: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gpt-4.1-2025-04-14">GPT-4.1 (Recommandé)</SelectItem>
+                  <SelectItem value="gpt-5-2025-08-07">GPT-5 (Flagship)</SelectItem>
+                  <SelectItem value="gpt-5-mini-2025-08-07">GPT-5 Mini (Rapide)</SelectItem>
+                  <SelectItem value="o3-2025-04-16">O3 (Raisonnement)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Clé API OpenAI</Label>
+              <Input
+                type="password"
+                placeholder="sk-..."
+                value={aiSettings.api_key}
+                onChange={(e) =>
+                  setAiSettings({ ...aiSettings, api_key: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Distance max HDMI (m)</Label>
+                <Input
+                  type="number"
+                  value={aiSettings.max_hdmi_m}
+                  onChange={(e) =>
+                    setAiSettings({
+                      ...aiSettings,
+                      max_hdmi_m: parseFloat(e.target.value) || 5,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Distance max HDBaseT (m)</Label>
+                <Input
+                  type="number"
+                  value={aiSettings.max_hdbaset_m}
+                  onChange={(e) =>
+                    setAiSettings({
+                      ...aiSettings,
+                      max_hdbaset_m: parseFloat(e.target.value) || 40,
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            <Button onClick={() => saveAiSettings.mutate()} className="w-full">
+              Sauvegarder les paramètres IA
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card className="glass neon-border-yellow">
           <CardHeader>
             <CardTitle className="neon-yellow">Types de Caméras</CardTitle>
