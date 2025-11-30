@@ -184,7 +184,6 @@ const ProjectDetail = () => {
                       <SelectValue placeholder="Aucun package" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucun package</SelectItem>
                       {packages?.map((pkg) => (
                         <SelectItem key={pkg.id} value={pkg.id}>
                           {pkg.name}
