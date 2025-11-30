@@ -53,6 +53,7 @@ export type Database = {
       cables: {
         Row: {
           cable_recommendation: string | null
+          commentaire: string | null
           created_at: string
           distance_m: number
           distance_with_margin_m: number | null
@@ -61,9 +62,11 @@ export type Database = {
           point_b: string
           room_id: string
           signal_type: string
+          transport: string | null
         }
         Insert: {
           cable_recommendation?: string | null
+          commentaire?: string | null
           created_at?: string
           distance_m: number
           distance_with_margin_m?: number | null
@@ -72,9 +75,11 @@ export type Database = {
           point_b: string
           room_id: string
           signal_type: string
+          transport?: string | null
         }
         Update: {
           cable_recommendation?: string | null
+          commentaire?: string | null
           created_at?: string
           distance_m?: number
           distance_with_margin_m?: number | null
@@ -83,6 +88,7 @@ export type Database = {
           point_b?: string
           room_id?: string
           signal_type?: string
+          transport?: string | null
         }
         Relationships: [
           {
