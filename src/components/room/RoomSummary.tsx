@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Download, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface RoomSummaryProps {
@@ -10,6 +12,7 @@ interface RoomSummaryProps {
 }
 
 export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
+  const [exportText, setExportText] = useState("");
   const { data: room } = useQuery({
     queryKey: ["room", roomId],
     queryFn: async () => {
@@ -253,41 +256,52 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     return text;
   };
 
-  const handleExportText = () => {
+  const generateExportText = () => {
     const text = generateStructuredText();
-
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `compte-rendu-${room?.name?.replace(/\s/g, "-")}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Export texte téléchargé");
+    setExportText(text);
+    toast.success("Texte structuré généré");
   };
 
-  const handleCopyText = () => {
-    const text = generateStructuredText();
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = () => {
+    if (!exportText) {
+      toast.error("Générez d'abord le texte structuré");
+      return;
+    }
+    navigator.clipboard.writeText(exportText);
     toast.success("Texte copié dans le presse-papier");
   };
 
   return (
     <div className="space-y-4">
-      <Card className="glass neon-border-yellow">
+      <Card className="glass neon-border-yellow p-6">
         <CardHeader>
-          <CardTitle className="neon-yellow">Export & Actions</CardTitle>
+          <CardTitle className="neon-yellow">Export texte structuré</CardTitle>
         </CardHeader>
-        <CardContent className="flex gap-2">
-          <Button onClick={handleExportText} className="gap-2">
-            <Download className="h-4 w-4" />
-            Télécharger le texte
-          </Button>
-          <Button onClick={handleCopyText} variant="outline" className="gap-2">
-            Copier le texte
-          </Button>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Texte d'export structuré</Label>
+            <textarea
+              className="w-full h-96 p-4 bg-background/50 border border-border rounded-lg text-sm font-mono"
+              value={exportText}
+              readOnly
+              placeholder="Cliquez sur 'Générer texte structuré' pour créer le compte-rendu..."
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={generateExportText} className="flex-1">
+              Générer texte structuré
+            </Button>
+            <Button onClick={copyToClipboard} variant="secondary">
+              <Copy className="h-4 w-4 mr-2" />
+              Copier le texte
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Note : L'export PDF sera disponible prochainement
+          </p>
         </CardContent>
       </Card>
+      
       <Card className="glass neon-border-yellow">
         <CardHeader>
           <CardTitle className="neon-yellow">A. Informations Projet</CardTitle>
@@ -448,26 +462,6 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
           </CardContent>
         </Card>
       )}
-
-      <Card className="glass neon-border-yellow">
-        <CardHeader>
-          <CardTitle className="neon-yellow">Export</CardTitle>
-        </CardHeader>
-        <CardContent className="flex gap-2">
-          <Button onClick={handleExportText} className="flex-1 bg-secondary hover:bg-secondary/80">
-            <Download className="h-4 w-4 mr-2" />
-            Exporter en texte
-          </Button>
-          <Button
-            onClick={() => toast.info("Export PDF sera disponible prochainement")}
-            className="flex-1"
-            variant="outline"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Exporter en PDF
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 };
