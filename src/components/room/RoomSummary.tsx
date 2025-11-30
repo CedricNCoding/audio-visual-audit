@@ -121,6 +121,25 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     },
   });
 
+  const { data: photos } = useQuery({
+    queryKey: ["room-photos", roomId],
+    queryFn: async () => {
+      const { data, error } = await supabase.storage
+        .from("room-photos")
+        .list(roomId);
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const getPhotoUrl = (fileName: string) => {
+    const { data } = supabase.storage
+      .from("room-photos")
+      .getPublicUrl(`${roomId}/${fileName}`);
+    return data.publicUrl;
+  };
+
   const { data: connectivityZones } = useQuery({
     queryKey: ["connectivity_zones", roomId],
     queryFn: async () => {
@@ -525,6 +544,18 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       });
     }
 
+    // Photos de la salle
+    if (photos && photos.length > 0) {
+      md += `## 🖼️ Photos de la salle\n\n`;
+      md += `Voici les photos associées à cette salle :\n\n`;
+      photos.forEach((photo, index) => {
+        const photoUrl = getPhotoUrl(photo.name);
+        const photoName = photo.name.split('_').slice(1).join('_') || `Photo ${index + 1}`;
+        md += `![${photoName}](${photoUrl})\n`;
+        md += `*${photoName}*\n\n`;
+      });
+    }
+
     // Analyse IA
     if (room.resume_technique_ia || room.warnings_ia || room.critical_errors_ia) {
       md += `## 🤖 Analyse IA\n\n`;
@@ -556,7 +587,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     }
 
     return md;
-  }, [room, sources, displays, roomUsage, roomEnvironment, roomVisio, roomSonorization, connectivityZones, cables]);
+  }, [room, sources, displays, roomUsage, roomEnvironment, roomVisio, roomSonorization, connectivityZones, cables, photos]);
 
   const downloadNotionStyleReport = () => {
     if (!notionStyleReport) {
@@ -697,11 +728,11 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
 
   // Générer automatiquement le compte rendu structuré au chargement
   useEffect(() => {
-    if (room && sources && displays && roomUsage && roomEnvironment && roomVisio && roomSonorization && connectivityZones && cables) {
+    if (room && sources && displays && roomUsage && roomEnvironment && roomVisio && roomSonorization && connectivityZones && cables && photos !== undefined) {
       const report = generateNotionStyleReport();
       setNotionStyleReport(report);
     }
-  }, [room, sources, displays, roomUsage, roomEnvironment, roomVisio, roomSonorization, connectivityZones, cables, generateNotionStyleReport]);
+  }, [room, sources, displays, roomUsage, roomEnvironment, roomVisio, roomSonorization, connectivityZones, cables, photos, generateNotionStyleReport]);
 
   return (
     <>
@@ -737,12 +768,38 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             <div className="prose prose-invert max-w-none">
               <pre className="whitespace-pre-wrap bg-background/30 p-4 rounded-lg text-sm border border-border overflow-auto max-h-96">
 {notionStyleReport}
               </pre>
             </div>
+
+            {/* Affichage visuel des photos */}
+            {photos && photos.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold neon-yellow flex items-center gap-2">
+                  🖼️ Photos de la salle
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {photos.map((photo, index) => {
+                    const photoUrl = getPhotoUrl(photo.name);
+                    const photoName = photo.name.split('_').slice(1).join('_') || `Photo ${index + 1}`;
+                    return (
+                      <div key={photo.name} className="glass neon-border-yellow p-2 rounded-lg space-y-2">
+                        <img
+                          src={photoUrl}
+                          alt={photoName}
+                          className="w-full h-32 object-cover rounded"
+                        />
+                        <p className="text-xs text-muted-foreground truncate">{photoName}</p>
+                        <p className="text-xs text-muted-foreground/50 truncate font-mono">{photoUrl}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
