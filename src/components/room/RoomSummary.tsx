@@ -4,13 +4,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Download, Copy, Sparkles } from "lucide-react";
+import { Download, Copy, Sparkles, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { AIAnalysisResults } from "@/components/ai/AIAnalysisResults";
+import { useRJ45Calculator } from "@/hooks/useRJ45Calculator";
+import { useTechnicalValidation } from "@/hooks/useTechnicalValidation";
 
 interface RoomSummaryProps {
   roomId: string;
 }
+
+interface ChecklistItemProps {
+  label: string;
+  isComplete: boolean;
+}
+
+const ChecklistItem = ({ label, isComplete }: ChecklistItemProps) => (
+  <div className="flex items-center gap-2 text-sm">
+    {isComplete ? (
+      <CheckCircle className="h-4 w-4 text-green-400" />
+    ) : (
+      <AlertCircle className="h-4 w-4 text-yellow-500" />
+    )}
+    <span className={isComplete ? "text-foreground" : "text-muted-foreground"}>
+      {label}
+    </span>
+    {!isComplete && <span className="text-xs text-yellow-500">(À compléter)</span>}
+  </div>
+);
 
 export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
   const queryClient = useQueryClient();
@@ -19,6 +40,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
   const [aiAnalysisData, setAiAnalysisData] = useState<any>(null);
   const [showAiResults, setShowAiResults] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGeneratingScenarios, setIsGeneratingScenarios] = useState(false);
 
   const { data: room } = useQuery({
     queryKey: ["room", roomId],
@@ -151,6 +173,79 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       return data;
     },
   });
+
+  const { calculateAndUpdate: calculateRJ45 } = useRJ45Calculator();
+  const { validate: validateTechnical } = useTechnicalValidation();
+
+  // Auto-calculate RJ45 recommendations when data changes
+  useEffect(() => {
+    if (room && roomVisio && roomSonorization && sources) {
+      calculateRJ45.mutate({
+        roomId,
+        visioRequired: roomVisio.visio_required,
+        streamingEnabled: roomVisio.streaming_enabled,
+        danteSouhaite: roomSonorization.dante_souhaite,
+        sources: sources,
+        platformType: roomUsage?.platform_type,
+      });
+    }
+  }, [roomId, roomVisio, roomSonorization, sources, roomUsage]);
+
+  // Auto-validate technical coherence when data changes
+  useEffect(() => {
+    if (room && cables && roomEnvironment && roomSonorization && roomVisio && connectivityZones) {
+      // Get AI settings for max distances
+      supabase
+        .from("ai_settings")
+        .select("max_hdmi_m, max_hdbaset_m")
+        .maybeSingle()
+        .then(({ data: aiSettings }) => {
+          validateTechnical.mutate({
+            roomId,
+            cables: cables,
+            environment: roomEnvironment,
+            sonorization: roomSonorization,
+            visio: roomVisio,
+            connectivity: connectivityZones,
+            maxHdmiM: aiSettings?.max_hdmi_m || 5,
+            maxHdbasetM: aiSettings?.max_hdbaset_m || 40,
+          });
+        });
+    }
+  }, [roomId, cables, roomEnvironment, roomSonorization, roomVisio, connectivityZones]);
+
+  const generateScenarios = async () => {
+    setIsGeneratingScenarios(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-scenarios`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ roomId }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erreur lors de la génération des scénarios");
+      }
+
+      const result = await response.json();
+      queryClient.invalidateQueries({ queryKey: ["room", roomId] });
+      toast.success("Scénarios générés avec succès");
+    } catch (error) {
+      console.error("Error generating scenarios:", error);
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la génération des scénarios");
+    } finally {
+      setIsGeneratingScenarios(false);
+    }
+  };
 
   const generateStructuredText = () => {
     let text = `═══════════════════════════════════════════════════════\n`;
@@ -571,6 +666,36 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       });
     }
 
+    // Réseau & RJ45 recommandés
+    if (room.rj45_total_recommande && room.rj45_total_recommande > 0) {
+      md += `## 🌐 Réseau & RJ45 recommandés\n\n`;
+      md += `- **Rack:** ${room.rj45_rack_recommande || 0} prise(s)\n`;
+      md += `- **Table:** ${room.rj45_table_recommande || 0} prise(s)\n`;
+      md += `- **Autres:** ${room.rj45_autres_recommande || 0} prise(s)\n`;
+      md += `- **Total:** ${room.rj45_total_recommande} prise(s)\n`;
+      if (room.rj45_commentaire) md += `\n*${room.rj45_commentaire}*\n`;
+      md += `\n`;
+    }
+
+    // Validation technique
+    if (room.validation_technique_statut) {
+      md += `## ✅ Validation technique\n\n`;
+      md += `**Statut:** ${room.validation_technique_statut}\n\n`;
+      if (room.validation_technique_details && room.validation_technique_details.length > 0) {
+        room.validation_technique_details.forEach((detail: string) => {
+          md += `${detail}\n`;
+        });
+        md += `\n`;
+      }
+    }
+
+    // Scénarios d'usage
+    if (room.scenarios_usage) {
+      md += `## 📋 Scénarios d'usage proposés\n\n`;
+      md += room.scenarios_usage;
+      md += `\n\n`;
+    }
+
     // Analyse IA
     if (room.resume_technique_ia || room.warnings_ia || room.critical_errors_ia) {
       md += `## 🤖 Analyse IA\n\n`;
@@ -905,6 +1030,161 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
                     );
                   })}
                 </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* RJ45 Network Recommendations */}
+        <Card className="glass neon-border-green p-6">
+          <CardHeader>
+            <CardTitle className="text-green-400">🌐 Réseau & RJ45 recommandés</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-3 bg-background/50 rounded-lg">
+                <p className="text-2xl font-bold text-green-400">{room?.rj45_rack_recommande || 0}</p>
+                <p className="text-sm text-muted-foreground">Rack</p>
+              </div>
+              <div className="text-center p-3 bg-background/50 rounded-lg">
+                <p className="text-2xl font-bold text-green-400">{room?.rj45_table_recommande || 0}</p>
+                <p className="text-sm text-muted-foreground">Table</p>
+              </div>
+              <div className="text-center p-3 bg-background/50 rounded-lg">
+                <p className="text-2xl font-bold text-green-400">{room?.rj45_autres_recommande || 0}</p>
+                <p className="text-sm text-muted-foreground">Autres</p>
+              </div>
+              <div className="text-center p-3 bg-primary/20 rounded-lg">
+                <p className="text-2xl font-bold text-primary">{room?.rj45_total_recommande || 0}</p>
+                <p className="text-sm text-muted-foreground font-semibold">Total</p>
+              </div>
+            </div>
+            {room?.rj45_commentaire && (
+              <p className="text-sm text-muted-foreground italic">{room.rj45_commentaire}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Technical Checklist */}
+        <Card className="glass neon-border-yellow p-6">
+          <CardHeader>
+            <CardTitle className="neon-yellow">✅ Check-list technique</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <ChecklistItem 
+              label="Dimensions salle renseignées" 
+              isComplete={!!(roomEnvironment?.length_m && roomEnvironment?.width_m && roomEnvironment?.height_m)} 
+            />
+            <ChecklistItem 
+              label="Matériaux des murs renseignés" 
+              isComplete={!!(roomEnvironment?.mur_a_materiau && roomEnvironment?.mur_b_materiau && roomEnvironment?.mur_c_materiau && roomEnvironment?.mur_d_materiau)} 
+            />
+            <ChecklistItem 
+              label="Mur principal (diffuseur) défini" 
+              isComplete={!!roomEnvironment?.mur_principal} 
+            />
+            <ChecklistItem 
+              label="Type de sonorisation choisi" 
+              isComplete={!!roomSonorization?.type_sonorisation} 
+            />
+            <ChecklistItem 
+              label="Renforcement voix renseigné" 
+              isComplete={!roomSonorization?.renforcement_voix || (roomSonorization?.nb_micros_renfort && roomSonorization.nb_micros_renfort > 0)} 
+            />
+            <ChecklistItem 
+              label="Plateforme de visio renseignée" 
+              isComplete={!!roomVisio?.visio_platform} 
+            />
+            <ChecklistItem 
+              label="Liaisons principales créées" 
+              isComplete={(cables?.length || 0) > 0} 
+            />
+            <ChecklistItem 
+              label="Connectique utilisateur renseignée" 
+              isComplete={(connectivityZones?.length || 0) > 0} 
+            />
+            <ChecklistItem 
+              label="Photos de la salle présentes" 
+              isComplete={(photos?.length || 0) > 0} 
+            />
+          </CardContent>
+        </Card>
+
+        {/* Technical Validation */}
+        {room?.validation_technique_statut && (
+          <Card className={`glass p-6 ${
+            room.validation_technique_statut === "OK" 
+              ? "neon-border-green" 
+              : room.validation_technique_statut === "AVERTISSEMENTS" 
+              ? "neon-border-yellow" 
+              : "neon-border-red"
+          }`}>
+            <CardHeader>
+              <CardTitle className={
+                room.validation_technique_statut === "OK" 
+                  ? "text-green-400" 
+                  : room.validation_technique_statut === "AVERTISSEMENTS" 
+                  ? "neon-yellow" 
+                  : "text-destructive"
+              }>
+                {room.validation_technique_statut === "OK" && "✅ Validation technique : OK"}
+                {room.validation_technique_statut === "AVERTISSEMENTS" && "⚠️ Validation technique : Avertissements"}
+                {room.validation_technique_statut === "ERREURS" && "❌ Validation technique : Erreurs"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {room.validation_technique_details && room.validation_technique_details.length > 0 && (
+                <ul className="space-y-2 text-sm">
+                  {room.validation_technique_details.map((detail: string, i: number) => (
+                    <li key={i} className={
+                      detail.startsWith("❌") 
+                        ? "text-destructive" 
+                        : detail.startsWith("⚠️") 
+                        ? "text-yellow-500" 
+                        : ""
+                    }>
+                      {detail}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Usage Scenarios */}
+        <Card className="glass neon-border-purple p-6">
+          <CardHeader>
+            <CardTitle className="text-purple-400">📋 Scénarios d'usage</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Générez automatiquement 2-3 scénarios concrets d'utilisation de la salle pour enrichir votre discours commercial.
+            </p>
+            <Button
+              onClick={generateScenarios}
+              disabled={isGeneratingScenarios}
+              className="w-full neon-border-purple"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              {isGeneratingScenarios ? "Génération en cours..." : "Générer des scénarios d'usage (IA)"}
+            </Button>
+            
+            {room?.scenarios_usage && (
+              <div className="space-y-4 mt-4">
+                <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap bg-background/50 p-4 rounded-lg border border-border">
+                  {room.scenarios_usage}
+                </div>
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(room.scenarios_usage);
+                    toast.success("Scénarios copiés");
+                  }}
+                  variant="secondary"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copier les scénarios
+                </Button>
               </div>
             )}
           </CardContent>

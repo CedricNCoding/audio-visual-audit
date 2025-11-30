@@ -2,3 +2,6 @@ project_id = "ohepdpitpktxmfzbjzbc"
 
 [functions.analyze-room]
 verify_jwt = true
+
+[functions.generate-scenarios]
+verify_jwt = true
