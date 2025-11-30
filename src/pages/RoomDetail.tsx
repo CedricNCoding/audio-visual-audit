@@ -356,18 +356,6 @@ const RoomDetail = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="glass neon-border-yellow flex flex-wrap justify-start gap-2 h-auto p-2">
-            <TabsTrigger value="usage" className="data-[state=active]:neon-border-blue">Usage</TabsTrigger>
-            <TabsTrigger value="environment" className="data-[state=active]:neon-border-blue">Environnement</TabsTrigger>
-            <TabsTrigger value="visio" className="data-[state=active]:neon-border-blue">Visio</TabsTrigger>
-            <TabsTrigger value="sources" className="data-[state=active]:neon-border-blue">Sources</TabsTrigger>
-            <TabsTrigger value="displays" className="data-[state=active]:neon-border-blue">Diffuseurs</TabsTrigger>
-            <TabsTrigger value="sonorization" className="data-[state=active]:neon-border-blue">Sonorisation</TabsTrigger>
-            <TabsTrigger value="connectivity" className="data-[state=active]:neon-border-blue">Connectique</TabsTrigger>
-            <TabsTrigger value="cables" className="data-[state=active]:neon-border-blue">Liaisons</TabsTrigger>
-            <TabsTrigger value="photos" className="data-[state=active]:neon-border-blue">Photos</TabsTrigger>
-            <TabsTrigger value="summary" className="data-[state=active]:neon-border-blue">Résumé</TabsTrigger>
-          </TabsList>
 
           <TabsContent value="usage">
             <Card>
