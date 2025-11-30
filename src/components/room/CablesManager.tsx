@@ -44,6 +44,7 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
     distance_m: 0,
     commentaire: "",
   });
+  const [editingDistances, setEditingDistances] = useState<Record<string, number>>({});
 
   const { data: cables } = useQuery({
     queryKey: ["cables", roomId],
@@ -435,16 +436,27 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
               <Label className="text-xs">Distance (m)</Label>
               <Input
                 type="number"
-                value={cable.distance_m}
-                onChange={async (e) => {
+                value={editingDistances[cable.id] ?? cable.distance_m}
+                onChange={(e) => {
                   const newDistance = parseFloat(e.target.value) || 0;
-                  const { error } = await supabase
-                    .from("cables")
-                    .update({ distance_m: newDistance })
-                    .eq("id", cable.id);
-                  if (!error) {
-                    queryClient.invalidateQueries({ queryKey: ["cables", roomId] });
+                  setEditingDistances(prev => ({ ...prev, [cable.id]: newDistance }));
+                }}
+                onBlur={async () => {
+                  const newDistance = editingDistances[cable.id];
+                  if (newDistance !== undefined && newDistance !== cable.distance_m) {
+                    const { error } = await supabase
+                      .from("cables")
+                      .update({ distance_m: newDistance })
+                      .eq("id", cable.id);
+                    if (!error) {
+                      queryClient.invalidateQueries({ queryKey: ["cables", roomId] });
+                      toast.success("Distance mise à jour");
+                    }
                   }
+                  setEditingDistances(prev => {
+                    const { [cable.id]: _, ...rest } = prev;
+                    return rest;
+                  });
                 }}
               />
             </div>
