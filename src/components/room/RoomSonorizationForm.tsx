@@ -5,23 +5,26 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 
 interface RoomSonorizationData {
-  ambiance_necessaire?: boolean;
-  ambiance_type?: string;
-  puissance_necessaire?: boolean;
-  puissance_niveau?: string;
+  // Nouveaux champs V2.1
+  type_sonorisation?: string;
   diffusion_homogene?: boolean;
-  type_diffusion?: string[];
+  diffusion_orientee?: boolean;
+  diffusion_locale?: boolean;
   renforcement_voix?: boolean;
-  nb_micros_renfort?: number;
-  types_micros_renfort?: string[];
+  nb_micro_main_hf?: number;
+  nb_micro_cravate_hf?: number;
+  nb_micro_serre_tete_hf?: number;
+  nb_micro_pupitre?: number;
+  nb_micro_plafond_beamforming?: number;
+  nb_micro_table?: number;
   mixage_multiple?: boolean;
-  objectif_acoustique?: string;
   retour_necessaire?: boolean;
   retour_type?: string;
-  larsen_risque?: boolean;
+  acoustique_niveau?: string;
   sources_audio_specifiques?: string;
   dsp_necessaire?: boolean;
   dante_souhaite?: boolean;
+  anti_larsen?: boolean;
 }
 
 interface RoomSonorizationFormProps {
@@ -34,117 +37,68 @@ export const RoomSonorizationForm = ({ data, onChange }: RoomSonorizationFormPro
     onChange({ ...data, [field]: value });
   };
 
-  const toggleArrayValue = (field: 'type_diffusion' | 'types_micros_renfort', value: string) => {
-    const currentArray = data[field] || [];
-    const newArray = currentArray.includes(value)
-      ? currentArray.filter(v => v !== value)
-      : [...currentArray, value];
-    updateField(field, newArray);
-  };
-
   return (
-    <div className="space-y-8">
-      {/* SECTION 1 — Sonorisation d'ambiance */}
+    <div className="space-y-6">
+      {/* SECTION 1 — Type général de sonorisation */}
       <div className="glass neon-border-yellow p-4 rounded-lg space-y-4">
-        <h3 className="text-lg font-semibold neon-yellow">Sonorisation d'ambiance</h3>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="ambiance_necessaire"
-            checked={data.ambiance_necessaire || false}
-            onCheckedChange={(checked) => updateField("ambiance_necessaire", checked)}
-          />
-          <label htmlFor="ambiance_necessaire" className="text-sm cursor-pointer">
-            Sonorisation d'ambiance nécessaire
-          </label>
+        <h3 className="text-lg font-semibold neon-yellow">Type de sonorisation</h3>
+        <div className="space-y-2">
+          <Label>Type général</Label>
+          <Select
+            value={data.type_sonorisation || ""}
+            onValueChange={(value) => updateField("type_sonorisation", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Ambiance">Ambiance</SelectItem>
+              <SelectItem value="Conférence / Formation">Conférence / Formation</SelectItem>
+              <SelectItem value="Mixte (ambiance + voix)">Mixte (ambiance + voix)</SelectItem>
+              <SelectItem value="Aucune sonorisation">Aucune sonorisation</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        {data.ambiance_necessaire && (
-          <div className="space-y-2 ml-6">
-            <Label>Type d'ambiance</Label>
-            <Select
-              value={data.ambiance_type || ""}
-              onValueChange={(value) => updateField("ambiance_type", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Musique légère">Musique légère</SelectItem>
-                <SelectItem value="Ambiance vidéo">Ambiance vidéo</SelectItem>
-                <SelectItem value="Messages vocaux">Messages vocaux</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
       </div>
 
-      {/* SECTION 2 — Sonorisation de puissance */}
+      {/* SECTION 2 — Diffusion */}
       <div className="glass neon-border-yellow p-4 rounded-lg space-y-4">
-        <h3 className="text-lg font-semibold neon-yellow">Sonorisation de puissance</h3>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="puissance_necessaire"
-            checked={data.puissance_necessaire || false}
-            onCheckedChange={(checked) => updateField("puissance_necessaire", checked)}
-          />
-          <label htmlFor="puissance_necessaire" className="text-sm cursor-pointer">
-            Sonorisation de puissance nécessaire
-          </label>
-        </div>
-        {data.puissance_necessaire && (
-          <div className="space-y-2 ml-6">
-            <Label>Niveau de puissance</Label>
-            <Select
-              value={data.puissance_niveau || ""}
-              onValueChange={(value) => updateField("puissance_niveau", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Petit groupe (−20 pers)">Petit groupe (−20 pers)</SelectItem>
-                <SelectItem value="Moyen (20–50)">Moyen (20–50)</SelectItem>
-                <SelectItem value="Grand (50+)">Grand (50+)</SelectItem>
-              </SelectContent>
-            </Select>
+        <h3 className="text-lg font-semibold neon-yellow">Diffusion</h3>
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="diffusion_homogene"
+              checked={data.diffusion_homogene || false}
+              onCheckedChange={(checked) => updateField("diffusion_homogene", checked)}
+            />
+            <label htmlFor="diffusion_homogene" className="text-sm cursor-pointer">
+              Diffusion homogène dans toute la pièce
+            </label>
           </div>
-        )}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="diffusion_orientee"
+              checked={data.diffusion_orientee || false}
+              onCheckedChange={(checked) => updateField("diffusion_orientee", checked)}
+            />
+            <label htmlFor="diffusion_orientee" className="text-sm cursor-pointer">
+              Diffusion orientée vers le public
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="diffusion_locale"
+              checked={data.diffusion_locale || false}
+              onCheckedChange={(checked) => updateField("diffusion_locale", checked)}
+            />
+            <label htmlFor="diffusion_locale" className="text-sm cursor-pointer">
+              Diffusion locale (pupitre, table…)
+            </label>
+          </div>
+        </div>
       </div>
 
-      {/* SECTION 3 — Diffusion homogène */}
-      <div className="glass neon-border-yellow p-4 rounded-lg space-y-4">
-        <h3 className="text-lg font-semibold neon-yellow">Diffusion homogène</h3>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="diffusion_homogene"
-            checked={data.diffusion_homogene || false}
-            onCheckedChange={(checked) => updateField("diffusion_homogene", checked)}
-          />
-          <label htmlFor="diffusion_homogene" className="text-sm cursor-pointer">
-            Diffusion homogène requise
-          </label>
-        </div>
-        {data.diffusion_homogene && (
-          <div className="space-y-2 ml-6">
-            <Label>Types de diffusion (multi-choix)</Label>
-            <div className="space-y-2">
-              {["Plafond", "Murs", "Totems", "Encastré"].map((type) => (
-                <div key={type} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`diffusion_${type}`}
-                    checked={(data.type_diffusion || []).includes(type)}
-                    onCheckedChange={() => toggleArrayValue("type_diffusion", type)}
-                  />
-                  <label htmlFor={`diffusion_${type}`} className="text-sm cursor-pointer">
-                    {type}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* SECTION 4 — Renforcement voix */}
+      {/* SECTION 3 — Renforcement voix */}
       <div className="glass neon-border-yellow p-4 rounded-lg space-y-4">
         <h3 className="text-lg font-semibold neon-yellow">Renforcement voix</h3>
         <div className="flex items-center space-x-2">
@@ -154,37 +108,72 @@ export const RoomSonorizationForm = ({ data, onChange }: RoomSonorizationFormPro
             onCheckedChange={(checked) => updateField("renforcement_voix", checked)}
           />
           <label htmlFor="renforcement_voix" className="text-sm cursor-pointer">
-            Renforcement voix nécessaire
+            Renforcement de la voix nécessaire
           </label>
         </div>
+
         {data.renforcement_voix && (
           <div className="space-y-4 ml-6">
-            <div className="space-y-2">
-              <Label>Nombre de micros de renfort</Label>
-              <Input
-                type="number"
-                min="0"
-                value={data.nb_micros_renfort || 0}
-                onChange={(e) => updateField("nb_micros_renfort", parseInt(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Types de micros (multi-choix)</Label>
-              <div className="space-y-2">
-                {["Main HF", "Cravate HF", "Serre-tête HF", "Micro pupitre", "Micro plafond Beamforming"].map((type) => (
-                  <div key={type} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`micro_${type}`}
-                      checked={(data.types_micros_renfort || []).includes(type)}
-                      onCheckedChange={() => toggleArrayValue("types_micros_renfort", type)}
-                    />
-                    <label htmlFor={`micro_${type}`} className="text-sm cursor-pointer">
-                      {type}
-                    </label>
-                  </div>
-                ))}
+            <div className="space-y-3">
+              <Label className="text-base">Quantité par type de micro</Label>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-sm">Micro main HF</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={data.nb_micro_main_hf || 0}
+                    onChange={(e) => updateField("nb_micro_main_hf", parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Micro cravate HF</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={data.nb_micro_cravate_hf || 0}
+                    onChange={(e) => updateField("nb_micro_cravate_hf", parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Micro serre-tête HF</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={data.nb_micro_serre_tete_hf || 0}
+                    onChange={(e) => updateField("nb_micro_serre_tete_hf", parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Micro pupitre filaire</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={data.nb_micro_pupitre || 0}
+                    onChange={(e) => updateField("nb_micro_pupitre", parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Micro plafond beamforming</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={data.nb_micro_plafond_beamforming || 0}
+                    onChange={(e) => updateField("nb_micro_plafond_beamforming", parseInt(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Micro de table</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={data.nb_micro_table || 0}
+                    onChange={(e) => updateField("nb_micro_table", parseInt(e.target.value) || 0)}
+                  />
+                </div>
               </div>
             </div>
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="mixage_multiple"
@@ -192,35 +181,14 @@ export const RoomSonorizationForm = ({ data, onChange }: RoomSonorizationFormPro
                 onCheckedChange={(checked) => updateField("mixage_multiple", checked)}
               />
               <label htmlFor="mixage_multiple" className="text-sm cursor-pointer">
-                Mixage multiple
+                Plusieurs micros utilisés simultanément (mixage multiple)
               </label>
             </div>
           </div>
         )}
       </div>
 
-      {/* SECTION 5 — Acoustique */}
-      <div className="glass neon-border-yellow p-4 rounded-lg space-y-4">
-        <h3 className="text-lg font-semibold neon-yellow">Acoustique</h3>
-        <div className="space-y-2">
-          <Label>Objectif acoustique</Label>
-          <Select
-            value={data.objectif_acoustique || ""}
-            onValueChange={(value) => updateField("objectif_acoustique", value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionner" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Acceptable">Acceptable</SelectItem>
-              <SelectItem value="Problématique">Problématique</SelectItem>
-              <SelectItem value="Très réverbérée">Très réverbérée</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* SECTION 6 — Retour sonore */}
+      {/* SECTION 4 — Retour sonore */}
       <div className="glass neon-border-yellow p-4 rounded-lg space-y-4">
         <h3 className="text-lg font-semibold neon-yellow">Retour sonore</h3>
         <div className="flex items-center space-x-2">
@@ -246,64 +214,92 @@ export const RoomSonorizationForm = ({ data, onChange }: RoomSonorizationFormPro
               <SelectContent>
                 <SelectItem value="Pupitre">Pupitre</SelectItem>
                 <SelectItem value="Scène">Scène</SelectItem>
-                <SelectItem value="Oreillette">Oreillette</SelectItem>
+                <SelectItem value="Oreillette / in-ear">Oreillette / in-ear</SelectItem>
               </SelectContent>
             </Select>
           </div>
         )}
       </div>
 
-      {/* SECTION 7 — Risque de larsen */}
+      {/* SECTION 5 — Acoustique */}
       <div className="glass neon-border-yellow p-4 rounded-lg space-y-4">
-        <h3 className="text-lg font-semibold neon-yellow">Risque de larsen</h3>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="larsen_risque"
-            checked={data.larsen_risque || false}
-            onCheckedChange={(checked) => updateField("larsen_risque", checked)}
-          />
-          <label htmlFor="larsen_risque" className="text-sm cursor-pointer">
-            Risque de larsen identifié
-          </label>
+        <h3 className="text-lg font-semibold neon-yellow">Acoustique</h3>
+        <div className="space-y-2">
+          <Label>Niveau acoustique de la salle</Label>
+          <Select
+            value={data.acoustique_niveau || ""}
+            onValueChange={(value) => updateField("acoustique_niveau", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Acceptable">Acceptable</SelectItem>
+              <SelectItem value="Problématique">Problématique</SelectItem>
+              <SelectItem value="Très réverbérée">Très réverbérée</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* SECTION 8 — Sources audio spécifiques */}
+      {/* SECTION 6 — Sources audio spécifiques */}
       <div className="glass neon-border-yellow p-4 rounded-lg space-y-4">
         <h3 className="text-lg font-semibold neon-yellow">Sources audio spécifiques</h3>
         <div className="space-y-2">
-          <Label>Description des sources audio spécifiques</Label>
+          <Label>Description des sources audio spécifiques à intégrer</Label>
           <Textarea
             value={data.sources_audio_specifiques || ""}
             onChange={(e) => updateField("sources_audio_specifiques", e.target.value)}
-            placeholder="Décrivez les sources audio spécifiques à prendre en compte..."
+            placeholder="Ex: lecteur CD, platines vinyles, entrée auxiliaire..."
             rows={4}
           />
         </div>
       </div>
 
-      {/* SECTION 9 — Traitement audio */}
+      {/* SECTION 7 — Traitement audio */}
       <div className="glass neon-border-yellow p-4 rounded-lg space-y-4">
         <h3 className="text-lg font-semibold neon-yellow">Traitement audio</h3>
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="dsp_necessaire"
-              checked={data.dsp_necessaire || false}
-              onCheckedChange={(checked) => updateField("dsp_necessaire", checked)}
-            />
-            <label htmlFor="dsp_necessaire" className="text-sm cursor-pointer">
-              DSP nécessaire
-            </label>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label>DSP nécessaire ?</Label>
+            <Select
+              value={data.dsp_necessaire === true ? "Oui" : data.dsp_necessaire === false ? "Non" : ""}
+              onValueChange={(value) => updateField("dsp_necessaire", value === "Oui" ? true : value === "Non" ? false : null)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Oui">Oui</SelectItem>
+                <SelectItem value="Non">Non</SelectItem>
+                <SelectItem value="Je ne sais pas">Je ne sais pas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Dante souhaité ?</Label>
+            <Select
+              value={data.dante_souhaite === true ? "Oui" : data.dante_souhaite === false ? "Non" : ""}
+              onValueChange={(value) => updateField("dante_souhaite", value === "Oui" ? true : value === "Non" ? false : null)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Oui">Oui</SelectItem>
+                <SelectItem value="Non">Non</SelectItem>
+                <SelectItem value="Peu importe">Peu importe</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
-              id="dante_souhaite"
-              checked={data.dante_souhaite || false}
-              onCheckedChange={(checked) => updateField("dante_souhaite", checked)}
+              id="anti_larsen"
+              checked={data.anti_larsen || false}
+              onCheckedChange={(checked) => updateField("anti_larsen", checked)}
             />
-            <label htmlFor="dante_souhaite" className="text-sm cursor-pointer">
-              Dante souhaité
+            <label htmlFor="anti_larsen" className="text-sm cursor-pointer">
+              Système anti-larsen requis
             </label>
           </div>
         </div>

@@ -401,15 +401,25 @@ export type Database = {
       }
       room_sonorization: {
         Row: {
+          acoustique_niveau: string | null
           ambiance_necessaire: boolean | null
           ambiance_type: string | null
+          anti_larsen: boolean | null
           created_at: string
           dante_souhaite: boolean | null
           diffusion_homogene: boolean | null
+          diffusion_locale: boolean | null
+          diffusion_orientee: boolean | null
           dsp_necessaire: boolean | null
           id: string
           larsen_risque: boolean | null
           mixage_multiple: boolean | null
+          nb_micro_cravate_hf: number | null
+          nb_micro_main_hf: number | null
+          nb_micro_plafond_beamforming: number | null
+          nb_micro_pupitre: number | null
+          nb_micro_serre_tete_hf: number | null
+          nb_micro_table: number | null
           nb_micros_renfort: number | null
           objectif_acoustique: string | null
           puissance_necessaire: boolean | null
@@ -420,19 +430,30 @@ export type Database = {
           room_id: string
           sources_audio_specifiques: string | null
           type_diffusion: string[] | null
+          type_sonorisation: string | null
           types_micros_renfort: string[] | null
           updated_at: string
         }
         Insert: {
+          acoustique_niveau?: string | null
           ambiance_necessaire?: boolean | null
           ambiance_type?: string | null
+          anti_larsen?: boolean | null
           created_at?: string
           dante_souhaite?: boolean | null
           diffusion_homogene?: boolean | null
+          diffusion_locale?: boolean | null
+          diffusion_orientee?: boolean | null
           dsp_necessaire?: boolean | null
           id?: string
           larsen_risque?: boolean | null
           mixage_multiple?: boolean | null
+          nb_micro_cravate_hf?: number | null
+          nb_micro_main_hf?: number | null
+          nb_micro_plafond_beamforming?: number | null
+          nb_micro_pupitre?: number | null
+          nb_micro_serre_tete_hf?: number | null
+          nb_micro_table?: number | null
           nb_micros_renfort?: number | null
           objectif_acoustique?: string | null
           puissance_necessaire?: boolean | null
@@ -443,19 +464,30 @@ export type Database = {
           room_id: string
           sources_audio_specifiques?: string | null
           type_diffusion?: string[] | null
+          type_sonorisation?: string | null
           types_micros_renfort?: string[] | null
           updated_at?: string
         }
         Update: {
+          acoustique_niveau?: string | null
           ambiance_necessaire?: boolean | null
           ambiance_type?: string | null
+          anti_larsen?: boolean | null
           created_at?: string
           dante_souhaite?: boolean | null
           diffusion_homogene?: boolean | null
+          diffusion_locale?: boolean | null
+          diffusion_orientee?: boolean | null
           dsp_necessaire?: boolean | null
           id?: string
           larsen_risque?: boolean | null
           mixage_multiple?: boolean | null
+          nb_micro_cravate_hf?: number | null
+          nb_micro_main_hf?: number | null
+          nb_micro_plafond_beamforming?: number | null
+          nb_micro_pupitre?: number | null
+          nb_micro_serre_tete_hf?: number | null
+          nb_micro_table?: number | null
           nb_micros_renfort?: number | null
           objectif_acoustique?: string | null
           puissance_necessaire?: boolean | null
@@ -466,6 +498,7 @@ export type Database = {
           room_id?: string
           sources_audio_specifiques?: string | null
           type_diffusion?: string[] | null
+          type_sonorisation?: string | null
           types_micros_renfort?: string[] | null
           updated_at?: string
         }

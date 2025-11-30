@@ -226,21 +226,63 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       text += `┌─────────────────────────────────────────────────────┐\n`;
       text += `│ Section 7 – SONORISATION                            │\n`;
       text += `└─────────────────────────────────────────────────────┘\n`;
-      text += `• Sonorisation d'ambiance : ${roomSonorization.ambiance_necessaire ? `Oui - ${roomSonorization.ambiance_type || "N/A"}` : "Non"}\n`;
-      text += `• Sonorisation de puissance : ${roomSonorization.puissance_necessaire ? `Oui - ${roomSonorization.puissance_niveau || "N/A"}` : "Non"}\n`;
-      text += `• Diffusion homogène : ${roomSonorization.diffusion_homogene ? `Oui - ${roomSonorization.type_diffusion?.join(", ") || "N/A"}` : "Non"}\n`;
+      
+      // Type général
+      if (roomSonorization.type_sonorisation) {
+        text += `• Type de sonorisation : ${roomSonorization.type_sonorisation}\n`;
+      }
+      
+      // Diffusion
+      const diffusionTypes = [];
+      if (roomSonorization.diffusion_homogene) diffusionTypes.push("Homogène");
+      if (roomSonorization.diffusion_orientee) diffusionTypes.push("Orientée");
+      if (roomSonorization.diffusion_locale) diffusionTypes.push("Locale");
+      if (diffusionTypes.length > 0) {
+        text += `• Diffusion : ${diffusionTypes.join(", ")}\n`;
+      }
+      
+      // Renforcement voix
       if (roomSonorization.renforcement_voix) {
-        text += `• Renforcement voix : Oui - ${roomSonorization.nb_micros_renfort || 0} micros (${roomSonorization.types_micros_renfort?.join(", ") || "N/A"})${roomSonorization.mixage_multiple ? " - Mixage multiple" : ""}\n`;
+        text += `• Renforcement voix : Oui\n`;
+        const micros = [];
+        if (roomSonorization.nb_micro_main_hf > 0) micros.push(`${roomSonorization.nb_micro_main_hf} micro main HF`);
+        if (roomSonorization.nb_micro_cravate_hf > 0) micros.push(`${roomSonorization.nb_micro_cravate_hf} micro cravate HF`);
+        if (roomSonorization.nb_micro_serre_tete_hf > 0) micros.push(`${roomSonorization.nb_micro_serre_tete_hf} micro serre-tête HF`);
+        if (roomSonorization.nb_micro_pupitre > 0) micros.push(`${roomSonorization.nb_micro_pupitre} micro pupitre`);
+        if (roomSonorization.nb_micro_plafond_beamforming > 0) micros.push(`${roomSonorization.nb_micro_plafond_beamforming} micro plafond beamforming`);
+        if (roomSonorization.nb_micro_table > 0) micros.push(`${roomSonorization.nb_micro_table} micro de table`);
+        if (micros.length > 0) {
+          text += `  Micros : ${micros.join(", ")}\n`;
+        }
+        if (roomSonorization.mixage_multiple) {
+          text += `  Mixage multiple : Oui\n`;
+        }
       } else {
         text += `• Renforcement voix : Non\n`;
       }
-      text += `• Acoustique : ${roomSonorization.objectif_acoustique || "N/A"}\n`;
+      
+      // Retour sonore
       text += `• Retour sonore : ${roomSonorization.retour_necessaire ? `Oui - ${roomSonorization.retour_type || "N/A"}` : "Non"}\n`;
-      text += `• Risque de larsen : ${roomSonorization.larsen_risque ? "Oui" : "Non"}\n`;
+      
+      // Acoustique
+      if (roomSonorization.acoustique_niveau) {
+        text += `• Acoustique : ${roomSonorization.acoustique_niveau}\n`;
+      }
+      
+      // Sources audio spécifiques
       if (roomSonorization.sources_audio_specifiques) {
         text += `• Sources audio spécifiques : ${roomSonorization.sources_audio_specifiques}\n`;
       }
-      text += `• Traitement audio : DSP ${roomSonorization.dsp_necessaire ? "Oui" : "Non"} - Dante ${roomSonorization.dante_souhaite ? "Oui" : "Non"}\n`;
+      
+      // Traitement audio
+      const traitements = [];
+      if (roomSonorization.dsp_necessaire) traitements.push("DSP");
+      if (roomSonorization.dante_souhaite) traitements.push("Dante");
+      if (roomSonorization.anti_larsen) traitements.push("Anti-larsen");
+      if (traitements.length > 0) {
+        text += `• Traitement audio : ${traitements.join(", ")}\n`;
+      }
+      
       text += `\n`;
     }
 
