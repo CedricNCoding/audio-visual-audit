@@ -110,149 +110,151 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     },
   });
 
-  const handleExportText = () => {
+  const generateStructuredText = () => {
     let text = `═══════════════════════════════════════════════════════\n`;
     text += `       COMPTE RENDU TECHNIQUE AUDIOVISUEL\n`;
     text += `═══════════════════════════════════════════════════════\n\n`;
+    text += `Salle ${room?.name || ""} – ${room?.typology || "N/A"} – ${roomUsage?.nombre_personnes || "?"} personnes\n\n`;
 
-    // A. Informations projet
+    // Section 1 – Projet
     text += `┌─────────────────────────────────────────────────────┐\n`;
-    text += `│ A. INFORMATIONS PROJET                              │\n`;
+    text += `│ Section 1 – PROJET                                  │\n`;
     text += `└─────────────────────────────────────────────────────┘\n`;
-    text += `Client: ${room?.projects?.client_name || "N/A"}\n`;
-    text += `Site: ${room?.projects?.site_name || "N/A"}\n`;
-    text += `Contact: ${room?.projects?.contact_name || "N/A"}\n`;
-    text += `Service décideur: ${room?.projects?.decision_service || "N/A"}\n`;
-    text += `Contact décideur: ${room?.projects?.decision_contact || "N/A"}\n`;
-    text += `Date de décision: ${room?.projects?.decision_date || "N/A"}\n\n`;
+    text += `• Client : ${room?.projects?.client_name || "N/A"}\n`;
+    text += `• Site : ${room?.projects?.site_name || "N/A"}\n`;
+    text += `• Projet : ${room?.name || "N/A"}\n`;
+    text += `• Service décideur : ${room?.projects?.decision_service || "N/A"} – Contact : ${room?.projects?.decision_contact || "N/A"}\n`;
+    text += `• Date de décision prévue : ${room?.projects?.decision_date || "N/A"}\n\n`;
 
-    // B. Informations salle
+    // Section 2 – Usage et contexte
     text += `┌─────────────────────────────────────────────────────┐\n`;
-    text += `│ B. INFORMATIONS SALLE                               │\n`;
+    text += `│ Section 2 – USAGE ET CONTEXTE                       │\n`;
     text += `└─────────────────────────────────────────────────────┘\n`;
-    text += `Nom de la salle: ${room?.name}\n`;
-    text += `Typologie: ${room?.typology || "N/A"}\n`;
     if (roomUsage) {
-      text += `Nombre de personnes: ${roomUsage.nombre_personnes || "N/A"}\n`;
-      text += `Usage principal: ${roomUsage.main_usage || "N/A"}\n`;
-      text += `Intensité d'usage: ${roomUsage.usage_intensity || "N/A"}\n`;
-      text += `Niveau de compétence: ${roomUsage.user_skill_level || "N/A"}\n`;
-      text += `Plateforme visio: ${roomUsage.platform_type || "N/A"}\n`;
-      text += `Réservation de salle: ${roomUsage.reservation_salle ? "Oui" : "Non"}\n`;
+      text += `• Usage principal : ${roomUsage.main_usage || "N/A"}\n`;
+      text += `• Intensité d'usage : ${roomUsage.usage_intensity || "N/A"}\n`;
+      text += `• Niveau de compétence utilisateurs : ${roomUsage.user_skill_level || "N/A"}\n`;
+      text += `• Plateforme principale : ${roomUsage.platform_type || "N/A"}\n`;
+      text += `• Réservation de salle : ${roomUsage.reservation_salle ? "Oui" : "Non"}\n`;
     }
     text += `\n`;
 
-    // C. Environnement
+    // Section 3 – Environnement
     if (roomEnvironment) {
       text += `┌─────────────────────────────────────────────────────┐\n`;
-      text += `│ C. ENVIRONNEMENT PHYSIQUE                           │\n`;
+      text += `│ Section 3 – ENVIRONNEMENT                           │\n`;
       text += `└─────────────────────────────────────────────────────┘\n`;
-      text += `Dimensions: ${roomEnvironment.length_m || "?"}m x ${roomEnvironment.width_m || "?"}m x ${roomEnvironment.height_m || "?"}m\n`;
-      text += `Matériaux murs: ${roomEnvironment.wall_material || "N/A"}\n`;
-      text += `Matériaux sol: ${roomEnvironment.floor_material || "N/A"}\n`;
-      text += `Matériaux plafond: ${roomEnvironment.ceiling_material || "N/A"}\n`;
-      text += `Plancher technique: ${roomEnvironment.has_raised_floor ? "Oui" : "Non"}\n`;
-      text += `Faux plafond technique: ${roomEnvironment.has_false_ceiling ? "Oui" : "Non"}\n`;
-      text += `Luminosité: ${roomEnvironment.brightness_level || "N/A"}\n`;
-      text += `Problème acoustique: ${roomEnvironment.has_acoustic_issue ? "Oui" : "Non"}\n`;
-      if (roomEnvironment.acoustic_comment) {
-        text += `Commentaire acoustique: ${roomEnvironment.acoustic_comment}\n`;
-      }
+      text += `• Dimensions : ${roomEnvironment.length_m || "?"}m x ${roomEnvironment.width_m || "?"}m x ${roomEnvironment.height_m || "?"}m\n`;
+      text += `• Murs : ${roomEnvironment.wall_material || "N/A"} – Sol : ${roomEnvironment.floor_material || "N/A"} – Plafond : ${roomEnvironment.ceiling_material || "N/A"}\n`;
+      text += `• Plancher technique : ${roomEnvironment.has_raised_floor ? "Oui" : "Non"}\n`;
+      text += `• Faux plafond technique : ${roomEnvironment.has_false_ceiling ? "Oui" : "Non"}\n`;
+      text += `• Luminosité : ${roomEnvironment.brightness_level || "N/A"}\n`;
+      text += `• Problèmes acoustiques : ${roomEnvironment.has_acoustic_issue ? "Oui" : "Non"}${roomEnvironment.acoustic_comment ? ` - ${roomEnvironment.acoustic_comment}` : ""}\n`;
       text += `\n`;
     }
 
-    // D. Visio / Streaming
+    // Section 4 – Visio / Audio / Streaming
     if (roomVisio) {
       text += `┌─────────────────────────────────────────────────────┐\n`;
-      text += `│ D. VISIOCONFÉRENCE & STREAMING                      │\n`;
+      text += `│ Section 4 – VISIO / AUDIO / STREAMING              │\n`;
       text += `└─────────────────────────────────────────────────────┘\n`;
-      text += `Visio nécessaire: ${roomVisio.visio_required ? "Oui" : "Non"}\n`;
-      text += `Besoin en streaming: ${roomVisio.streaming_enabled ? "Oui" : "Non"}\n`;
-      text += `Besoin de voir: ${roomVisio.need_to_see ? "Oui" : "Non"}\n`;
-      text += `Besoin d'être vu: ${roomVisio.need_to_be_seen ? "Oui" : "Non"}\n`;
-      text += `Besoin d'entendre: ${roomVisio.need_to_hear ? "Oui" : "Non"}\n`;
-      text += `Besoin d'être entendu: ${roomVisio.need_to_be_heard ? "Oui" : "Non"}\n`;
-      text += `Nombre de caméras: ${roomVisio.camera_count || 0}\n`;
-      if (roomVisio.camera_types && roomVisio.camera_types.length > 0) {
-        text += `Types de caméras: ${roomVisio.camera_types.join(", ")}\n`;
-      }
-      text += `Nombre de micros: ${roomVisio.mic_count || 0}\n`;
-      if (roomVisio.mic_types && roomVisio.mic_types.length > 0) {
-        text += `Types de micros: ${roomVisio.mic_types.join(", ")}\n`;
-      }
+      text += `• Visio nécessaire : ${roomVisio.visio_required ? "Oui" : "Non"}\n`;
+      text += `• Besoin en streaming : ${roomVisio.streaming_enabled ? "Oui" : "Non"}\n`;
+      text += `• Voir : ${roomVisio.need_to_see ? "Oui" : "Non"}\n`;
+      text += `• Être vu : ${roomVisio.need_to_be_seen ? "Oui" : "Non"}\n`;
+      text += `• Entendre : ${roomVisio.need_to_hear ? "Oui" : "Non"}\n`;
+      text += `• Être entendu : ${roomVisio.need_to_be_heard ? "Oui" : "Non"}\n`;
+      text += `• Caméras : ${roomVisio.camera_count || 0} x ${roomVisio.camera_types?.join(", ") || "N/A"}\n`;
+      text += `• Micros : ${roomVisio.mic_count || 0} x ${roomVisio.mic_types?.join(", ") || "N/A"}\n`;
       if (roomVisio.streaming_enabled) {
-        text += `Type de streaming: ${roomVisio.streaming_type || "N/A"}\n`;
-        text += `Plateforme streaming: ${roomVisio.streaming_platform || "N/A"}\n`;
-        text += `Complexité streaming: ${roomVisio.streaming_complexity || "N/A"}\n`;
+        text += `• Streaming : ${roomVisio.streaming_type || "N/A"} sur ${roomVisio.streaming_platform || "N/A"} (complexité : ${roomVisio.streaming_complexity || "N/A"})\n`;
       }
       text += `\n`;
     }
 
-    // E. Sources en régie
+    // Section 5 – Sources en régie
     if (sources && sources.length > 0) {
       text += `┌─────────────────────────────────────────────────────┐\n`;
-      text += `│ E. SOURCES EN RÉGIE                                 │\n`;
+      text += `│ Section 5 – SOURCES EN RÉGIE                        │\n`;
       text += `└─────────────────────────────────────────────────────┘\n`;
       sources.forEach((s) => {
-        text += `• ${s.source_type} - Quantité: ${s.quantity}\n`;
+        text += `• ${s.quantity || 1} x ${s.source_type}\n`;
       });
       text += `\n`;
     }
 
-    // F. Diffuseurs
+    // Section 6 – Diffuseurs
     if (displays && displays.length > 0) {
       text += `┌─────────────────────────────────────────────────────┐\n`;
-      text += `│ F. DIFFUSEURS                                       │\n`;
+      text += `│ Section 6 – DIFFUSEURS                              │\n`;
       text += `└─────────────────────────────────────────────────────┘\n`;
       displays.forEach((d) => {
-        text += `• ${d.display_type}\n`;
-        text += `  - Taille: ${d.size_inches}"\n`;
-        text += `  - Position: ${d.position || "N/A"}\n`;
+        const sizeText = d.size_inches || (d.display_type === "Vidéoprojecteur" && d.base_ecran_cm ? 
+          Math.round(Math.sqrt(Math.pow(d.base_ecran_cm, 2) + Math.pow(d.base_ecran_cm * 10 / 16, 2)) / 2.54) : "?");
+        text += `• ${d.display_type} – ${sizeText}" – position : ${d.position || "N/A"} – distance spectateur : ${d.viewer_distance_m || "?"}m – hauteur bas écran : ${d.bottom_height_cm || "?"}cm\n`;
         if (d.display_type === "Vidéoprojecteur") {
-          if (d.distance_projection_m) text += `  - Distance projection: ${d.distance_projection_m}m\n`;
-          if (d.base_ecran_cm) text += `  - Base écran: ${d.base_ecran_cm}cm\n`;
+          text += `  distance de projection : ${d.distance_projection_m || "?"}m – base écran : ${d.base_ecran_cm || "?"}cm\n`;
         }
-        if (d.viewer_distance_m) text += `  - Distance spectateur: ${d.viewer_distance_m}m\n`;
-        if (d.bottom_height_cm) text += `  - Hauteur bas écran: ${d.bottom_height_cm}cm\n`;
       });
       text += `\n`;
     }
 
-    // G. Connectique utilisateur
+    // Section 7 – Connectique utilisateur
     if (connectivityZones && connectivityZones.length > 0) {
       text += `┌─────────────────────────────────────────────────────┐\n`;
-      text += `│ G. CONNECTIQUE UTILISATEUR                          │\n`;
+      text += `│ Section 7 – CONNECTIQUE UTILISATEUR                 │\n`;
       text += `└─────────────────────────────────────────────────────┘\n`;
       connectivityZones.forEach((zone) => {
-        text += `Zone: ${zone.zone_name}\n`;
-        if (zone.hdmi_count > 0) text += `  - HDMI: ${zone.hdmi_count}\n`;
-        if (zone.usbc_count > 0) text += `  - USB-C: ${zone.usbc_count}\n`;
-        if (zone.displayport_count > 0) text += `  - DisplayPort: ${zone.displayport_count}\n`;
-        if (zone.rj45_count > 0) text += `  - RJ45: ${zone.rj45_count}\n`;
-        if (zone.usba_count > 0) text += `  - USB-A: ${zone.usba_count}\n`;
-        if (zone.power_230v_count > 0) text += `  - Prises 230V: ${zone.power_230v_count}\n`;
-        if (zone.distance_to_control_room_m > 0) text += `  - Distance vers régie: ${zone.distance_to_control_room_m}m\n`;
+        const parts = [];
+        if (zone.hdmi_count > 0) parts.push(`${zone.hdmi_count} HDMI`);
+        if (zone.usbc_count > 0) parts.push(`${zone.usbc_count} USB-C`);
+        if (zone.displayport_count > 0) parts.push(`${zone.displayport_count} DP`);
+        if (zone.rj45_count > 0) parts.push(`${zone.rj45_count} RJ45`);
+        if (zone.usba_count > 0) parts.push(`${zone.usba_count} USB-A`);
+        if (zone.power_230v_count > 0) parts.push(`${zone.power_230v_count} prises 230V`);
+        text += `• ${zone.zone_name} : ${parts.join(", ")}`;
+        if (zone.distance_to_control_room_m > 0) text += ` (distance vers régie : ${zone.distance_to_control_room_m}m)`;
         text += `\n`;
-      });
-    }
-
-    // H. Liaisons & câbles
-    if (cables && cables.length > 0) {
-      text += `┌─────────────────────────────────────────────────────┐\n`;
-      text += `│ H. LIAISONS & CÂBLES                                │\n`;
-      text += `└─────────────────────────────────────────────────────┘\n`;
-      cables.forEach((cable) => {
-        text += `• ${cable.point_a} → ${cable.point_b}\n`;
-        text += `  - Type signal: ${cable.signal_type}\n`;
-        text += `  - Distance: ${cable.distance_m}m (avec marge: ${cable.distance_with_margin_m}m)\n`;
-        text += `  - Recommandation: ${cable.cable_recommendation}\n`;
       });
       text += `\n`;
     }
+
+    // Section 8 – Liaisons & câbles
+    if (cables && cables.length > 0) {
+      text += `┌─────────────────────────────────────────────────────┐\n`;
+      text += `│ Section 8 – LIAISONS & CÂBLES                       │\n`;
+      text += `└─────────────────────────────────────────────────────┘\n`;
+      cables.forEach((cable) => {
+        text += `• ${cable.point_a} → ${cable.point_b} – ${cable.signal_type} – ${cable.distance_m}m (${cable.distance_with_margin_m}m avec marge) – ${cable.cable_recommendation}\n`;
+      });
+      text += `\n`;
+    }
+
+    // Section 9 – Synthèse
+    text += `┌─────────────────────────────────────────────────────┐\n`;
+    text += `│ Section 9 – SYNTHÈSE                                │\n`;
+    text += `└─────────────────────────────────────────────────────┘\n`;
+    
+    // Calculate recommendation
+    const sourcesCount = sources?.length || 0;
+    const displaysCount = displays?.length || 0;
+    let recommendation = "Distribution simple";
+    if (sourcesCount > 1 && displaysCount === 1) {
+      recommendation = "Sélecteur";
+    } else if (sourcesCount > 1 && displaysCount > 1) {
+      recommendation = "Matrice";
+    }
+    text += `• Recommandation gestion des signaux : ${recommendation}\n\n`;
 
     text += `═══════════════════════════════════════════════════════\n`;
     text += `          Fin du compte rendu technique\n`;
     text += `═══════════════════════════════════════════════════════\n`;
+
+    return text;
+  };
+
+  const handleExportText = () => {
+    const text = generateStructuredText();
 
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -264,8 +266,28 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     toast.success("Export texte téléchargé");
   };
 
+  const handleCopyText = () => {
+    const text = generateStructuredText();
+    navigator.clipboard.writeText(text);
+    toast.success("Texte copié dans le presse-papier");
+  };
+
   return (
     <div className="space-y-4">
+      <Card className="glass neon-border-yellow">
+        <CardHeader>
+          <CardTitle className="neon-yellow">Export & Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="flex gap-2">
+          <Button onClick={handleExportText} className="gap-2">
+            <Download className="h-4 w-4" />
+            Télécharger le texte
+          </Button>
+          <Button onClick={handleCopyText} variant="outline" className="gap-2">
+            Copier le texte
+          </Button>
+        </CardContent>
+      </Card>
       <Card className="glass neon-border-yellow">
         <CardHeader>
           <CardTitle className="neon-yellow">A. Informations Projet</CardTitle>

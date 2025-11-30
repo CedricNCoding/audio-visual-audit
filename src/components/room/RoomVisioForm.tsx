@@ -4,6 +4,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RoomVisioData {
   visio_required?: boolean;
@@ -27,10 +29,25 @@ interface RoomVisioFormProps {
   onChange: (data: RoomVisioData) => void;
 }
 
-const CAMERA_TYPES = ["PTZ", "Tracking", "Barre", "USB", "Array"];
-const MIC_TYPES = ["Table", "Plafond", "HF", "Array", "Perche"];
-
 export const RoomVisioForm = ({ data, onChange }: RoomVisioFormProps) => {
+  const { data: cameraTypes } = useQuery({
+    queryKey: ["camera_types"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("camera_types").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: micTypes } = useQuery({
+    queryKey: ["microphone_types"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("microphone_types").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const updateField = (field: keyof RoomVisioData, value: any) => {
     onChange({ ...data, [field]: value });
   };
@@ -140,8 +157,8 @@ export const RoomVisioForm = ({ data, onChange }: RoomVisioFormProps) => {
                     <SelectValue placeholder="Ajouter un type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CAMERA_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    {cameraTypes?.map((type) => (
+                      <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -178,8 +195,8 @@ export const RoomVisioForm = ({ data, onChange }: RoomVisioFormProps) => {
                     <SelectValue placeholder="Ajouter un type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {MIC_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    {micTypes?.map((type) => (
+                      <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
