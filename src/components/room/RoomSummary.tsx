@@ -1,18 +1,24 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Download, Copy } from "lucide-react";
+import { Download, Copy, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { AIAnalysisResults } from "@/components/ai/AIAnalysisResults";
 
 interface RoomSummaryProps {
   roomId: string;
 }
 
 export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
+  const queryClient = useQueryClient();
   const [exportText, setExportText] = useState("");
+  const [aiAnalysisData, setAiAnalysisData] = useState<any>(null);
+  const [showAiResults, setShowAiResults] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
   const { data: room } = useQuery({
     queryKey: ["room", roomId],
     queryFn: async () => {
@@ -324,9 +330,136 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     toast.success("Fichier texte téléchargé");
   };
 
+  const analyzeWithAI = async () => {
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-room", {
+        body: { roomId },
+      });
+
+      if (error) throw error;
+
+      setAiAnalysisData(data);
+      setShowAiResults(true);
+      toast.success("Analyse IA terminée");
+    } catch (error: any) {
+      console.error("Error analyzing room:", error);
+      toast.error(error.message || "Erreur lors de l'analyse IA");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const applyAISelections = useMutation({
+    mutationFn: async (selections: any) => {
+      const { selectedLinks, selectedAudioLinks, applyAudioConfig, applyConnectivity } = selections;
+
+      // Create selected video/network links
+      for (const linkId of selectedLinks) {
+        const link = aiAnalysisData.links.find((l: any) => l.id === linkId);
+        if (link) {
+          const distance = 10; // Default distance, could be calculated
+          await supabase.from("cables").insert({
+            room_id: roomId,
+            point_a: link.from,
+            point_b: link.to,
+            signal_type: link.signal_type,
+            distance_m: distance,
+            distance_with_margin_m: distance * 1.2,
+            cable_recommendation: link.transport,
+          });
+        }
+      }
+
+      // Create selected audio links
+      for (const linkId of selectedAudioLinks) {
+        const link = aiAnalysisData.audio_links.find((l: any) => l.id === linkId);
+        if (link) {
+          const distance = 10; // Default distance
+          await supabase.from("cables").insert({
+            room_id: roomId,
+            point_a: link.from,
+            point_b: link.to,
+            signal_type: link.signal_type,
+            distance_m: distance,
+            distance_with_margin_m: distance * 1.2,
+            cable_recommendation: link.transport,
+          });
+        }
+      }
+
+      // Save AI config and results to room
+      const updateData: any = {
+        warnings_ia: aiAnalysisData.warnings,
+        critical_errors_ia: aiAnalysisData.critical_errors,
+        debug_ia: aiAnalysisData.debug,
+        resume_technique_ia: aiAnalysisData.summary_text,
+      };
+
+      if (applyAudioConfig) {
+        updateData.audio_config_ia = aiAnalysisData.audio_config;
+      }
+
+      await supabase.from("rooms").update(updateData).eq("id", roomId);
+
+      // Apply connectivity if selected
+      if (applyConnectivity && aiAnalysisData.user_connectivity?.table) {
+        const conn = aiAnalysisData.user_connectivity.table;
+        await supabase.from("connectivity_zones").upsert({
+          room_id: roomId,
+          zone_name: "Table (IA)",
+          hdmi_count: conn.hdmi,
+          usbc_count: conn.usbc,
+          rj45_count: conn.rj45,
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cables", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["connectivity_zones", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["room", roomId] });
+      setShowAiResults(false);
+      toast.success("Recommandations IA appliquées");
+    },
+    onError: (error: any) => {
+      console.error("Error applying AI selections:", error);
+      toast.error("Erreur lors de l'application des recommandations");
+    },
+  });
+
   return (
-    <div className="space-y-4">
-      <Card className="glass neon-border-yellow p-6">
+    <>
+      {showAiResults && aiAnalysisData && (
+        <AIAnalysisResults
+          data={aiAnalysisData}
+          onApply={(selections) => applyAISelections.mutate(selections)}
+          onClose={() => setShowAiResults(false)}
+        />
+      )}
+
+      <div className="space-y-4">
+        <Card className="glass neon-border-yellow p-6">
+          <CardHeader>
+            <CardTitle className="neon-yellow">Analyse IA</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Utilisez l'intelligence artificielle pour analyser automatiquement
+              la salle et obtenir des recommandations complètes sur les liaisons,
+              la sonorisation, et la connectique.
+            </p>
+            <Button
+              onClick={analyzeWithAI}
+              disabled={isAnalyzing}
+              className="w-full neon-border-blue"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              {isAnalyzing ? "Analyse en cours..." : "Analyser avec l'IA"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="glass neon-border-yellow p-6">
         <CardHeader>
           <CardTitle className="neon-yellow">Export texte structuré</CardTitle>
         </CardHeader>
@@ -355,6 +488,84 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
           </div>
         </CardContent>
       </Card>
-    </div>
+
+      {/* AI Analysis Results Summary */}
+      {room?.resume_technique_ia && (
+        <Card className="glass neon-border-blue p-6">
+          <CardHeader>
+            <CardTitle className="neon-blue">Analyse IA complète</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Critical Errors */}
+            {room.critical_errors_ia && room.critical_errors_ia.length > 0 && (
+              <div className="border-destructive bg-destructive/10 p-4 rounded-lg">
+                <h3 className="font-semibold text-destructive mb-2 flex items-center gap-2">
+                  <span className="text-lg">⚠️</span>
+                  Erreurs critiques détectées par l'IA
+                </h3>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  {room.critical_errors_ia.map((error: string, i: number) => (
+                    <li key={i} className="text-destructive">{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Warnings */}
+            {room.warnings_ia && room.warnings_ia.length > 0 && (
+              <div className="border-yellow-500/50 bg-yellow-500/10 p-4 rounded-lg">
+                <h3 className="font-semibold text-yellow-500 mb-2">Avertissements</h3>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  {room.warnings_ia.map((warning: string, i: number) => (
+                    <li key={i} className="text-yellow-500">{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Audio Config */}
+            {room.audio_config_ia && (
+              <div className="bg-background/50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">Configuration audio recommandée par l'IA</h3>
+                <div className="space-y-2 text-sm">
+                  <p><strong>Type:</strong> {(room.audio_config_ia as any).type_sonorisation}</p>
+                  {(room.audio_config_ia as any).ambiance?.active && (
+                    <p><strong>Ambiance:</strong> {(room.audio_config_ia as any).ambiance.description}</p>
+                  )}
+                  {(room.audio_config_ia as any).puissance?.active && (
+                    <p><strong>Puissance:</strong> {(room.audio_config_ia as any).puissance.niveau} - {(room.audio_config_ia as any).puissance.description}</p>
+                  )}
+                  {(room.audio_config_ia as any).diffusion?.homogene && (
+                    <p><strong>Diffusion:</strong> {(room.audio_config_ia as any).diffusion.mode.join(", ")} ({(room.audio_config_ia as any).diffusion.approx_nb_enceintes} enceintes approx.)</p>
+                  )}
+                  <p><strong>Traitement:</strong> DSP {(room.audio_config_ia as any).traitement?.dsp_recommande ? "recommandé" : "non nécessaire"}, Dante {(room.audio_config_ia as any).traitement?.dante_recommande ? "recommandé" : "non nécessaire"}</p>
+                </div>
+              </div>
+            )}
+
+            {/* AI Summary Text */}
+            <div className="space-y-2">
+              <Label>Résumé technique IA</Label>
+              <textarea
+                className="w-full h-64 p-4 bg-background/50 border border-border rounded-lg text-sm font-mono"
+                value={room.resume_technique_ia}
+                readOnly
+              />
+              <Button
+                onClick={() => {
+                  navigator.clipboard.writeText(room.resume_technique_ia);
+                  toast.success("Résumé IA copié");
+                }}
+                variant="secondary"
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copier le résumé IA
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      </div>
+    </>
   );
 };

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_settings: {
+        Row: {
+          api_key: string | null
+          created_at: string
+          id: string
+          max_hdbaset_m: number | null
+          max_hdmi_m: number | null
+          model_name: string | null
+          provider: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key?: string | null
+          created_at?: string
+          id?: string
+          max_hdbaset_m?: number | null
+          max_hdmi_m?: number | null
+          model_name?: string | null
+          provider?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string | null
+          created_at?: string
+          id?: string
+          max_hdbaset_m?: number | null
+          max_hdmi_m?: number | null
+          model_name?: string | null
+          provider?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cables: {
         Row: {
           cable_recommendation: string | null
@@ -564,31 +600,46 @@ export type Database = {
       }
       rooms: {
         Row: {
+          audio_config_ia: Json | null
           created_at: string
+          critical_errors_ia: string[] | null
+          debug_ia: string[] | null
           id: string
           name: string
           package_id: string | null
           project_id: string
+          resume_technique_ia: string | null
           typology: string | null
           updated_at: string
+          warnings_ia: string[] | null
         }
         Insert: {
+          audio_config_ia?: Json | null
           created_at?: string
+          critical_errors_ia?: string[] | null
+          debug_ia?: string[] | null
           id?: string
           name: string
           package_id?: string | null
           project_id: string
+          resume_technique_ia?: string | null
           typology?: string | null
           updated_at?: string
+          warnings_ia?: string[] | null
         }
         Update: {
+          audio_config_ia?: Json | null
           created_at?: string
+          critical_errors_ia?: string[] | null
+          debug_ia?: string[] | null
           id?: string
           name?: string
           package_id?: string | null
           project_id?: string
+          resume_technique_ia?: string | null
           typology?: string | null
           updated_at?: string
+          warnings_ia?: string[] | null
         }
         Relationships: [
           {
