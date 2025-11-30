@@ -4,12 +4,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Save, Trash2, Edit2 } from "lucide-react";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { ArrowLeft, Save, Trash2, Edit2, Info, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { RoomUsageForm } from "@/components/room/RoomUsageForm";
 import { RoomEnvironmentForm } from "@/components/room/RoomEnvironmentForm";
 import { RoomVisioForm } from "@/components/room/RoomVisioForm";
@@ -20,6 +22,9 @@ import { ConnectivityManager } from "@/components/room/ConnectivityManager";
 import { CablesManager } from "@/components/room/CablesManager";
 import { PhotosManager } from "@/components/room/PhotosManager";
 import { RoomSummary } from "@/components/room/RoomSummary";
+import { StepNavigation } from "@/components/room/StepNavigation";
+import { RoomRecap } from "@/components/room/RoomRecap";
+import { EquipmentHelper } from "@/components/room/EquipmentHelper";
 
 const RoomDetail = () => {
   const { roomId } = useParams();
@@ -243,9 +248,25 @@ const RoomDetail = () => {
     }
   };
 
-  const steps = ["usage", "environment", "visio", "sources", "displays", "sonorization", "connectivity", "cables", "photos", "summary"];
-  const stepNames = ["Usage", "Environnement", "Visio", "Sources", "Diffuseurs", "Sonorisation", "Connectique", "Liaisons", "Photos", "Résumé"];
+  const isMobile = useIsMobile();
+  const steps = ["usage", "environment", "sonorization", "visio", "sources", "displays", "connectivity", "cables", "photos", "summary"];
+  const stepNames = isMobile 
+    ? ["Usage", "Env.", "Sono", "Visio", "Src.", "Diff.", "Connex.", "Câbles", "Photos", "Résumé"]
+    : ["Usage", "Environnement", "Sonorisation", "Visio", "Sources", "Diffuseurs", "Connectique", "Liaisons", "Photos", "Résumé"];
   const currentStepIndex = steps.indexOf(activeTab);
+
+  const handleNext = () => {
+    if (currentStepIndex < steps.length - 1) {
+      handleSave();
+      setActiveTab(steps[currentStepIndex + 1]);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStepIndex > 0) {
+      setActiveTab(steps[currentStepIndex - 1]);
+    }
+  };
 
   return (
     <AppLayout>
@@ -322,37 +343,58 @@ const RoomDetail = () => {
         </div>
 
         {/* Step Progress Indicator */}
-        <div className="glass neon-border-yellow p-4 rounded-lg">
-          <div className="flex justify-between items-center mb-2">
-            {stepNames.map((name, index) => (
-              <div key={name} className="flex-1 flex items-center">
-                <button
-                  onClick={() => setActiveTab(steps[index])}
-                  className={`flex items-center justify-center w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110 ${
-                    index === currentStepIndex ? "neon-border-blue bg-primary text-primary-foreground" :
-                    index < currentStepIndex ? "bg-primary/50 text-primary-foreground" :
-                    "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {index + 1}
-                </button>
-                {index < stepNames.length - 1 && (
-                  <div className={`flex-1 h-0.5 ${index < currentStepIndex ? "bg-primary" : "bg-muted"}`} />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
+        <div className={`glass neon-border-yellow p-4 rounded-lg ${isMobile ? 'sticky top-0 z-40 overflow-x-auto' : ''}`}>
+          <div className="flex items-center gap-2 min-w-max">
             {stepNames.map((name, index) => (
               <button
                 key={name}
                 onClick={() => setActiveTab(steps[index])}
-                className="flex-1 text-center hover:text-foreground transition-colors cursor-pointer"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap ${
+                  index === currentStepIndex 
+                    ? "neon-border-blue bg-primary text-primary-foreground" 
+                    : index < currentStepIndex 
+                    ? "bg-primary/30 text-primary-foreground" 
+                    : "bg-muted text-muted-foreground"
+                }`}
               >
-                {name}
+                <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs ${
+                  index === currentStepIndex ? "bg-primary-foreground text-primary" : ""
+                }`}>
+                  {index + 1}
+                </span>
+                <span className="text-sm">{name}</span>
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Quick access buttons */}
+        <div className="flex gap-2 justify-end">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Info className="h-4 w-4" />
+                Rappel
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <RoomRecap roomId={roomId!} />
+            </DialogContent>
+          </Dialog>
+          
+          {["displays", "sonorization", "visio"].includes(activeTab) && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <HelpCircle className="h-4 w-4" />
+                  Aide au choix
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <EquipmentHelper typology={room?.typology} />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -365,10 +407,18 @@ const RoomDetail = () => {
                   Définissez l'utilisation et le contexte de la salle
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isMobile ? 'pb-20' : ''}>
                 <RoomUsageForm
                   data={usageData}
                   onChange={setUsageData}
+                />
+                <StepNavigation
+                  currentStep={currentStepIndex + 1}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onPrevious={handlePrevious}
+                  onSave={handleSave}
+                  showSave
                 />
               </CardContent>
             </Card>
@@ -382,10 +432,18 @@ const RoomDetail = () => {
                   Caractéristiques physiques de la salle
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isMobile ? 'pb-20' : ''}>
                 <RoomEnvironmentForm
                   data={environmentData}
                   onChange={setEnvironmentData}
+                />
+                <StepNavigation
+                  currentStep={currentStepIndex + 1}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onPrevious={handlePrevious}
+                  onSave={handleSave}
+                  showSave
                 />
               </CardContent>
             </Card>
@@ -399,10 +457,18 @@ const RoomDetail = () => {
                   Configuration visioconférence et streaming
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isMobile ? 'pb-20' : ''}>
                 <RoomVisioForm
                   data={visioData}
                   onChange={setVisioData}
+                />
+                <StepNavigation
+                  currentStep={currentStepIndex + 1}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onPrevious={handlePrevious}
+                  onSave={handleSave}
+                  showSave
                 />
               </CardContent>
             </Card>
@@ -416,8 +482,14 @@ const RoomDetail = () => {
                   Gérez les sources de contenu en régie
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isMobile ? 'pb-20' : ''}>
                 <SourcesManager roomId={roomId!} />
+                <StepNavigation
+                  currentStep={currentStepIndex + 1}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onPrevious={handlePrevious}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -430,8 +502,14 @@ const RoomDetail = () => {
                   Gérez les écrans et projecteurs
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isMobile ? 'pb-20' : ''}>
                 <DisplaysManager roomId={roomId!} />
+                <StepNavigation
+                  currentStep={currentStepIndex + 1}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onPrevious={handlePrevious}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -444,10 +522,18 @@ const RoomDetail = () => {
                   Configuration de la sonorisation de la salle
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isMobile ? 'pb-20' : ''}>
                 <RoomSonorizationForm
                   data={sonorizationData}
                   onChange={setSonorizationData}
+                />
+                <StepNavigation
+                  currentStep={currentStepIndex + 1}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onPrevious={handlePrevious}
+                  onSave={handleSave}
+                  showSave
                 />
               </CardContent>
             </Card>
@@ -461,8 +547,14 @@ const RoomDetail = () => {
                   Zones de connectique et prises
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isMobile ? 'pb-20' : ''}>
                 <ConnectivityManager roomId={roomId!} />
+                <StepNavigation
+                  currentStep={currentStepIndex + 1}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onPrevious={handlePrevious}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -475,8 +567,14 @@ const RoomDetail = () => {
                   Gérez les connexions et recommandations
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isMobile ? 'pb-20' : ''}>
                 <CablesManager roomId={roomId!} />
+                <StepNavigation
+                  currentStep={currentStepIndex + 1}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onPrevious={handlePrevious}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -489,8 +587,14 @@ const RoomDetail = () => {
                   Téléchargez et annotez vos photos
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isMobile ? 'pb-20' : ''}>
                 <PhotosManager roomId={roomId!} />
+                <StepNavigation
+                  currentStep={currentStepIndex + 1}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onPrevious={handlePrevious}
+                />
               </CardContent>
             </Card>
           </TabsContent>

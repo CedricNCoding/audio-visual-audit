@@ -78,32 +78,6 @@ export const RoomEnvironmentForm = ({ data, onChange }: RoomEnvironmentFormProps
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="space-y-2">
-          <Label>Matériaux murs</Label>
-          <Input
-            value={data.wall_material || ""}
-            onChange={(e) => updateField("wall_material", e.target.value)}
-            placeholder="Ex: Plâtre, bois..."
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Matériaux sol</Label>
-          <Input
-            value={data.floor_material || ""}
-            onChange={(e) => updateField("floor_material", e.target.value)}
-            placeholder="Ex: Moquette, carrelage..."
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Matériaux plafond</Label>
-          <Input
-            value={data.ceiling_material || ""}
-            onChange={(e) => updateField("ceiling_material", e.target.value)}
-            placeholder="Ex: Dalle, plâtre..."
-          />
-        </div>
-      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex items-center space-x-2">

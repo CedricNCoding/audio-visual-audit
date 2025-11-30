@@ -108,12 +108,12 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
 
   const addDisplay = useMutation({
     mutationFn: async () => {
-      // Auto-calculate size_inches for vidéoprojecteur if not provided
+      // Auto-calculate size_inches for vidéoprojecteur
       let displayData = { ...newDisplay };
+      let finalSizeInches = displayData.size_inches;
+      
       if (displayData.display_type === "Vidéoprojecteur" && displayData.base_ecran_cm > 0) {
-        if (!displayData.size_inches || displayData.size_inches === 0) {
-          displayData.size_inches = calculateInchesFromBase(displayData.base_ecran_cm);
-        }
+        finalSizeInches = calculateInchesFromBase(displayData.base_ecran_cm);
       }
       
       // Calculate recommended size and comment
@@ -127,7 +127,7 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
         room_id: roomId,
         display_type: displayData.display_type,
         position: displayData.position || null,
-        size_inches: displayData.size_inches || null,
+        size_inches: finalSizeInches || null,
         distance_projection_m: displayData.distance_projection_m || null,
         base_ecran_cm: displayData.base_ecran_cm || null,
         viewer_distance_m: displayData.viewer_distance_m || null,
@@ -174,14 +174,20 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
             ))}
           </SelectContent>
         </Select>
-        {/* Ne pas afficher taille_pouces pour les vidéoprojecteurs */}
-        {newDisplay.display_type !== "Vidéoprojecteur" && (
+        {/* Affichage selon le type de diffuseur */}
+        {newDisplay.display_type !== "Vidéoprojecteur" ? (
           <Input
             type="number"
             placeholder="Taille (pouces)"
             value={newDisplay.size_inches || ""}
             onChange={(e) => setNewDisplay({ ...newDisplay, size_inches: parseInt(e.target.value) || 0 })}
           />
+        ) : (
+          newDisplay.base_ecran_cm > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 rounded-md text-sm text-muted-foreground">
+              Taille calculée : {calculateInchesFromBase(newDisplay.base_ecran_cm)}"
+            </div>
+          )
         )}
         <Select
           value={newDisplay.position}

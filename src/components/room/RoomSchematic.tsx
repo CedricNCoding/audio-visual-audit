@@ -26,14 +26,14 @@ const MATERIAL_OPTIONS = [
 ];
 
 const MATERIAL_COLORS: Record<string, string> = {
-  "Placo": "bg-gray-400/30 border-gray-400",
-  "Béton": "bg-slate-500/30 border-slate-500",
-  "Brique": "bg-red-600/30 border-red-600",
-  "Vitrage": "bg-blue-400/30 border-blue-400",
-  "Rideaux / tentures": "bg-purple-400/30 border-purple-400",
-  "Bois": "bg-amber-600/30 border-amber-600",
-  "Panneaux acoustiques": "bg-green-500/30 border-green-500",
-  "Autre": "bg-orange-400/30 border-orange-400",
+  "Placo": "fill-gray-400/30",
+  "Béton": "fill-slate-500/30",
+  "Brique": "fill-red-600/30",
+  "Vitrage": "fill-blue-400/30",
+  "Rideaux / tentures": "fill-purple-400/30",
+  "Bois": "fill-amber-600/30",
+  "Panneaux acoustiques": "fill-green-500/30",
+  "Autre": "fill-orange-400/30",
 };
 
 interface RoomSchematicProps {
@@ -59,7 +59,7 @@ export const RoomSchematic = ({
   onWallChange,
   onPrincipalWallChange,
 }: RoomSchematicProps) => {
-  const [selectedWall, setSelectedWall] = useState<"A" | "B" | "C" | "D" | null>(null);
+  const [openWall, setOpenWall] = useState<"A" | "B" | "C" | "D" | null>(null);
 
   if (!lengthM || !widthM) {
     return (
@@ -78,14 +78,21 @@ export const RoomSchematic = ({
   const svgHeight = ratio > 1 ? svgWidth / ratio : svgWidth;
 
   const getWallColor = (material?: string) => {
-    if (!material) return "stroke-border";
-    return MATERIAL_COLORS[material] || "stroke-border";
+    if (!material) return "fill-muted/20";
+    return MATERIAL_COLORS[material] || "fill-muted/20";
   };
 
   const getWallStyle = (wall: "A" | "B" | "C" | "D", material?: string) => {
-    const baseClass = material ? getWallColor(material) : "stroke-border";
+    const fillColor = getWallColor(material);
     const isPrincipal = murPrincipal === wall;
-    return `${baseClass} ${isPrincipal ? "stroke-[4px] neon-border-blue" : "stroke-[2px]"} fill-none cursor-pointer hover:opacity-80 transition-opacity`;
+    const strokeWidth = isPrincipal ? "stroke-[4]" : "stroke-2";
+    const strokeColor = isPrincipal ? "stroke-primary" : "stroke-border";
+    return `${fillColor} ${strokeColor} ${strokeWidth} cursor-pointer hover:brightness-110 transition-all`;
+  };
+
+  const handleWallSelect = (wall: "A" | "B" | "C" | "D", material: string) => {
+    onWallChange(wall, material);
+    setOpenWall(null);
   };
 
   return (
@@ -96,156 +103,232 @@ export const RoomSchematic = ({
         </h3>
         
         <div className="flex justify-center mb-4">
-          <svg width={svgWidth + 100} height={svgHeight + 100} className="border border-border/20 rounded-lg bg-background/20">
+          <svg width={svgWidth + 100} height={svgHeight + 140} className="border border-border/20 rounded-lg bg-background/20">
             {/* Mur A (haut) */}
-            <Popover open={selectedWall === "A"} onOpenChange={(open) => setSelectedWall(open ? "A" : null)}>
+            <Popover open={openWall === "A"} onOpenChange={(open) => !open && setOpenWall(null)}>
               <PopoverTrigger asChild>
-                <line
-                  x1={50}
-                  y1={50}
-                  x2={50 + svgWidth}
-                  y2={50}
-                  className={getWallStyle("A", murA)}
-                  onClick={() => setSelectedWall("A")}
-                />
+                <g className="cursor-pointer" onClick={() => setOpenWall("A")}>
+                  <rect
+                    x="50"
+                    y="50"
+                    width={svgWidth}
+                    height="20"
+                    className={getWallStyle("A", murA)}
+                  />
+                  <text
+                    x={50 + svgWidth / 2}
+                    y="40"
+                    textAnchor="middle"
+                    className="fill-foreground text-xs font-medium pointer-events-none"
+                  >
+                    {murA ? `A - ${murA}` : "A"}{murPrincipal === "A" && " 🖥️"}
+                  </text>
+                </g>
               </PopoverTrigger>
-              <PopoverContent className="w-64">
-                <div className="space-y-2">
-                  <Label>Mur A (haut)</Label>
-                  <Select value={murA || ""} onValueChange={(val) => onWallChange("A", val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir matériau" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MATERIAL_OPTIONS.map((mat) => (
-                        <SelectItem key={mat} value={mat}>{mat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button size="sm" variant="outline" onClick={() => onPrincipalWallChange("A")}>
+              <PopoverContent className="w-80 z-50">
+                <div className="space-y-3">
+                  <h4 className="font-medium">Mur A (haut)</h4>
+                  <div className="space-y-2">
+                    <Label>Matériau</Label>
+                    <Select 
+                      value={murA || ""} 
+                      onValueChange={(value) => handleWallSelect("A", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un matériau" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MATERIAL_OPTIONS.map((mat) => (
+                          <SelectItem key={mat} value={mat}>{mat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      onPrincipalWallChange("A");
+                      setOpenWall(null);
+                    }}
+                  >
                     Définir comme mur principal
                   </Button>
                 </div>
               </PopoverContent>
             </Popover>
-            <text x={50 + svgWidth / 2} y={40} textAnchor="middle" className="fill-foreground text-xs">
-              {murA ? `A - ${murA}` : "A"}
-              {murPrincipal === "A" && " 🖥️"}
-            </text>
 
             {/* Mur B (droite) */}
-            <Popover open={selectedWall === "B"} onOpenChange={(open) => setSelectedWall(open ? "B" : null)}>
+            <Popover open={openWall === "B"} onOpenChange={(open) => !open && setOpenWall(null)}>
               <PopoverTrigger asChild>
-                <line
-                  x1={50 + svgWidth}
-                  y1={50}
-                  x2={50 + svgWidth}
-                  y2={50 + svgHeight}
-                  className={getWallStyle("B", murB)}
-                  onClick={() => setSelectedWall("B")}
-                />
+                <g className="cursor-pointer" onClick={() => setOpenWall("B")}>
+                  <rect
+                    x={50 + svgWidth}
+                    y="70"
+                    width="20"
+                    height={svgHeight}
+                    className={getWallStyle("B", murB)}
+                  />
+                  <text
+                    x={85 + svgWidth}
+                    y={70 + svgHeight / 2}
+                    textAnchor="start"
+                    className="fill-foreground text-xs font-medium pointer-events-none"
+                  >
+                    {murB ? `B - ${murB}` : "B"}{murPrincipal === "B" && " 🖥️"}
+                  </text>
+                </g>
               </PopoverTrigger>
-              <PopoverContent className="w-64">
-                <div className="space-y-2">
-                  <Label>Mur B (droite)</Label>
-                  <Select value={murB || ""} onValueChange={(val) => onWallChange("B", val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir matériau" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MATERIAL_OPTIONS.map((mat) => (
-                        <SelectItem key={mat} value={mat}>{mat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button size="sm" variant="outline" onClick={() => onPrincipalWallChange("B")}>
+              <PopoverContent className="w-80 z-50">
+                <div className="space-y-3">
+                  <h4 className="font-medium">Mur B (droite)</h4>
+                  <div className="space-y-2">
+                    <Label>Matériau</Label>
+                    <Select 
+                      value={murB || ""} 
+                      onValueChange={(value) => handleWallSelect("B", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un matériau" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MATERIAL_OPTIONS.map((mat) => (
+                          <SelectItem key={mat} value={mat}>{mat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      onPrincipalWallChange("B");
+                      setOpenWall(null);
+                    }}
+                  >
                     Définir comme mur principal
                   </Button>
                 </div>
               </PopoverContent>
             </Popover>
-            <text x={60 + svgWidth} y={50 + svgHeight / 2} textAnchor="start" className="fill-foreground text-xs">
-              {murB ? `B - ${murB}` : "B"}
-              {murPrincipal === "B" && " 🖥️"}
-            </text>
 
             {/* Mur C (bas) */}
-            <Popover open={selectedWall === "C"} onOpenChange={(open) => setSelectedWall(open ? "C" : null)}>
+            <Popover open={openWall === "C"} onOpenChange={(open) => !open && setOpenWall(null)}>
               <PopoverTrigger asChild>
-                <line
-                  x1={50}
-                  y1={50 + svgHeight}
-                  x2={50 + svgWidth}
-                  y2={50 + svgHeight}
-                  className={getWallStyle("C", murC)}
-                  onClick={() => setSelectedWall("C")}
-                />
+                <g className="cursor-pointer" onClick={() => setOpenWall("C")}>
+                  <rect
+                    x="50"
+                    y={70 + svgHeight}
+                    width={svgWidth}
+                    height="20"
+                    className={getWallStyle("C", murC)}
+                  />
+                  <text
+                    x={50 + svgWidth / 2}
+                    y={105 + svgHeight}
+                    textAnchor="middle"
+                    className="fill-foreground text-xs font-medium pointer-events-none"
+                  >
+                    {murC ? `C - ${murC}` : "C"}{murPrincipal === "C" && " 🖥️"}
+                  </text>
+                </g>
               </PopoverTrigger>
-              <PopoverContent className="w-64">
-                <div className="space-y-2">
-                  <Label>Mur C (bas)</Label>
-                  <Select value={murC || ""} onValueChange={(val) => onWallChange("C", val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir matériau" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MATERIAL_OPTIONS.map((mat) => (
-                        <SelectItem key={mat} value={mat}>{mat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button size="sm" variant="outline" onClick={() => onPrincipalWallChange("C")}>
+              <PopoverContent className="w-80 z-50">
+                <div className="space-y-3">
+                  <h4 className="font-medium">Mur C (bas)</h4>
+                  <div className="space-y-2">
+                    <Label>Matériau</Label>
+                    <Select 
+                      value={murC || ""} 
+                      onValueChange={(value) => handleWallSelect("C", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un matériau" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MATERIAL_OPTIONS.map((mat) => (
+                          <SelectItem key={mat} value={mat}>{mat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      onPrincipalWallChange("C");
+                      setOpenWall(null);
+                    }}
+                  >
                     Définir comme mur principal
                   </Button>
                 </div>
               </PopoverContent>
             </Popover>
-            <text x={50 + svgWidth / 2} y={65 + svgHeight} textAnchor="middle" className="fill-foreground text-xs">
-              {murC ? `C - ${murC}` : "C"}
-              {murPrincipal === "C" && " 🖥️"}
-            </text>
 
             {/* Mur D (gauche) */}
-            <Popover open={selectedWall === "D"} onOpenChange={(open) => setSelectedWall(open ? "D" : null)}>
+            <Popover open={openWall === "D"} onOpenChange={(open) => !open && setOpenWall(null)}>
               <PopoverTrigger asChild>
-                <line
-                  x1={50}
-                  y1={50}
-                  x2={50}
-                  y2={50 + svgHeight}
-                  className={getWallStyle("D", murD)}
-                  onClick={() => setSelectedWall("D")}
-                />
+                <g className="cursor-pointer" onClick={() => setOpenWall("D")}>
+                  <rect
+                    x="30"
+                    y="70"
+                    width="20"
+                    height={svgHeight}
+                    className={getWallStyle("D", murD)}
+                  />
+                  <text
+                    x="20"
+                    y={70 + svgHeight / 2}
+                    textAnchor="end"
+                    className="fill-foreground text-xs font-medium pointer-events-none"
+                  >
+                    {murD ? `D - ${murD}` : "D"}{murPrincipal === "D" && " 🖥️"}
+                  </text>
+                </g>
               </PopoverTrigger>
-              <PopoverContent className="w-64">
-                <div className="space-y-2">
-                  <Label>Mur D (gauche)</Label>
-                  <Select value={murD || ""} onValueChange={(val) => onWallChange("D", val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir matériau" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MATERIAL_OPTIONS.map((mat) => (
-                        <SelectItem key={mat} value={mat}>{mat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button size="sm" variant="outline" onClick={() => onPrincipalWallChange("D")}>
+              <PopoverContent className="w-80 z-50">
+                <div className="space-y-3">
+                  <h4 className="font-medium">Mur D (gauche)</h4>
+                  <div className="space-y-2">
+                    <Label>Matériau</Label>
+                    <Select 
+                      value={murD || ""} 
+                      onValueChange={(value) => handleWallSelect("D", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un matériau" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MATERIAL_OPTIONS.map((mat) => (
+                          <SelectItem key={mat} value={mat}>{mat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      onPrincipalWallChange("D");
+                      setOpenWall(null);
+                    }}
+                  >
                     Définir comme mur principal
                   </Button>
                 </div>
               </PopoverContent>
             </Popover>
-            <text x={40} y={50 + svgHeight / 2} textAnchor="end" className="fill-foreground text-xs">
-              {murD ? `D - ${murD}` : "D"}
-              {murPrincipal === "D" && " 🖥️"}
-            </text>
 
             {/* Dimensions */}
-            <text x={50 + svgWidth / 2} y={svgHeight + 85} textAnchor="middle" className="fill-muted-foreground text-xs">
+            <text x={50 + svgWidth / 2} y={125 + svgHeight} textAnchor="middle" className="fill-muted-foreground text-xs">
               {widthM} m
             </text>
-            <text x={25} y={50 + svgHeight / 2} textAnchor="middle" className="fill-muted-foreground text-xs" transform={`rotate(-90 25 ${50 + svgHeight / 2})`}>
+            <text x={15} y={70 + svgHeight / 2} textAnchor="middle" className="fill-muted-foreground text-xs" transform={`rotate(-90 15 ${70 + svgHeight / 2})`}>
               {lengthM} m
             </text>
           </svg>
