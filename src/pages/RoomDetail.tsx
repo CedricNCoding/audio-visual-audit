@@ -343,13 +343,13 @@ const RoomDetail = () => {
         </div>
 
         {/* Step Progress Indicator */}
-        <div className={`glass neon-border-yellow p-4 rounded-lg ${isMobile ? 'sticky top-0 z-40 overflow-x-auto' : ''}`}>
-          <div className="flex items-center gap-2 min-w-max">
+        <div className={`glass neon-border-yellow rounded-lg ${isMobile ? 'sticky top-0 z-40 overflow-x-auto p-2' : 'p-4 mb-4'}`}>
+          <div className="flex items-center gap-1.5 min-w-max">
             {stepNames.map((name, index) => (
               <button
                 key={name}
                 onClick={() => setActiveTab(steps[index])}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 ${isMobile ? 'px-2 py-1.5' : 'px-3 py-2'} rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${
                   index === currentStepIndex 
                     ? "neon-border-blue bg-primary text-primary-foreground" 
                     : index < currentStepIndex 
@@ -357,32 +357,20 @@ const RoomDetail = () => {
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs ${
+                <span className={`flex items-center justify-center ${isMobile ? 'w-5 h-5 text-[10px]' : 'w-6 h-6 text-xs'} rounded-full ${
                   index === currentStepIndex ? "bg-primary-foreground text-primary" : ""
                 }`}>
                   {index + 1}
                 </span>
-                <span className="text-sm">{name}</span>
+                <span className={isMobile ? 'text-xs' : 'text-sm'}>{name}</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* Quick access buttons */}
-        <div className="flex gap-2 justify-end">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Info className="h-4 w-4" />
-                Rappel
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-              <RoomRecap roomId={roomId!} />
-            </DialogContent>
-          </Dialog>
-          
-          {["displays", "sonorization", "visio"].includes(activeTab) && (
+        {["displays", "sonorization", "visio"].includes(activeTab) && (
+          <div className="flex gap-2 justify-end mb-4">
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
@@ -394,8 +382,8 @@ const RoomDetail = () => {
                 <EquipmentHelper typology={room?.typology} />
               </DialogContent>
             </Dialog>
-          )}
-        </div>
+          </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
 
