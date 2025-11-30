@@ -575,6 +575,12 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     toast.success("Compte rendu téléchargé");
   };
 
+  const forceGenerateReport = () => {
+    const report = generateNotionStyleReport();
+    setNotionStyleReport(report);
+    toast.success("Compte rendu généré");
+  };
+
   const downloadTextFile = () => {
     if (!exportText) {
       toast.error("Générez d'abord le texte structuré");
@@ -712,14 +718,24 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
         <Card className="glass neon-border-yellow p-6">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="neon-yellow">📋 Compte rendu structuré</CardTitle>
-            <Button
-              onClick={downloadNotionStyleReport}
-              variant="secondary"
-              size="sm"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Télécharger .md
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={forceGenerateReport}
+                variant="default"
+                size="sm"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Générer
+              </Button>
+              <Button
+                onClick={downloadNotionStyleReport}
+                variant="secondary"
+                size="sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Télécharger .md
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="prose prose-invert max-w-none">
