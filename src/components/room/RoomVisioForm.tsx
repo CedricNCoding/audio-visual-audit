@@ -210,7 +210,7 @@ export const RoomVisioForm = ({ data, onChange }: RoomVisioFormProps) => {
             onCheckedChange={(checked) => updateField("streaming_enabled", checked)}
           />
           <label htmlFor="streaming" className="text-sm cursor-pointer font-medium">
-            Streaming activé
+            Besoin en streaming
           </label>
         </div>
 

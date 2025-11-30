@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, DoorOpen, ArrowLeft } from "lucide-react";
+import { Plus, DoorOpen, ArrowLeft, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 const ROOM_TYPOLOGIES = [
@@ -98,6 +98,90 @@ const ProjectDetail = () => {
     },
     onError: (error: any) => {
       toast.error("Erreur : " + error.message);
+    },
+  });
+
+  const duplicateRoom = useMutation({
+    mutationFn: async (roomId: string) => {
+      // Get original room data
+      const { data: originalRoom, error: fetchError } = await supabase
+        .from("rooms")
+        .select("*")
+        .eq("id", roomId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+
+      // Create new room
+      const { data: newRoom, error: roomError } = await supabase
+        .from("rooms")
+        .insert([{
+          name: `${originalRoom.name} (copie)`,
+          typology: originalRoom.typology,
+          package_id: originalRoom.package_id,
+          project_id: originalRoom.project_id,
+        }])
+        .select()
+        .single();
+      
+      if (roomError) throw roomError;
+
+      // Copy sources
+      const { data: sources } = await supabase
+        .from("sources")
+        .select("*")
+        .eq("room_id", roomId);
+      
+      if (sources && sources.length > 0) {
+        await supabase.from("sources").insert(
+          sources.map(s => ({ ...s, id: undefined, room_id: newRoom.id, created_at: undefined }))
+        );
+      }
+
+      // Copy displays
+      const { data: displays } = await supabase
+        .from("displays")
+        .select("*")
+        .eq("room_id", roomId);
+      
+      if (displays && displays.length > 0) {
+        await supabase.from("displays").insert(
+          displays.map(d => ({ ...d, id: undefined, room_id: newRoom.id, created_at: undefined }))
+        );
+      }
+
+      // Copy connectivity zones
+      const { data: zones } = await supabase
+        .from("connectivity_zones")
+        .select("*")
+        .eq("room_id", roomId);
+      
+      if (zones && zones.length > 0) {
+        await supabase.from("connectivity_zones").insert(
+          zones.map(z => ({ ...z, id: undefined, room_id: newRoom.id, created_at: undefined }))
+        );
+      }
+
+      // Copy cables
+      const { data: cables } = await supabase
+        .from("cables")
+        .select("*")
+        .eq("room_id", roomId);
+      
+      if (cables && cables.length > 0) {
+        await supabase.from("cables").insert(
+          cables.map(c => ({ ...c, id: undefined, room_id: newRoom.id, created_at: undefined }))
+        );
+      }
+
+      return newRoom;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", projectId] });
+      toast.success("Salle dupliquée avec succès");
+    },
+    onError: (error: any) => {
+      toast.error("Erreur lors de la duplication : " + error.message);
     },
   });
 
@@ -227,15 +311,27 @@ const ProjectDetail = () => {
             {rooms?.map((room) => (
               <Card
                 key={room.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => navigate(`/rooms/${room.id}`)}
+                className="cursor-pointer hover:shadow-lg transition-shadow glass relative group"
               >
-                <CardHeader>
-                  <CardTitle>{room.name}</CardTitle>
-                  {room.typology && (
-                    <CardDescription>{room.typology}</CardDescription>
-                  )}
-                </CardHeader>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    duplicateRoom.mutate(room.id);
+                  }}
+                >
+                  <Copy className="h-4 w-4 neon-blue" />
+                </Button>
+                <div onClick={() => navigate(`/rooms/${room.id}`)}>
+                  <CardHeader>
+                    <CardTitle className="neon-yellow">{room.name}</CardTitle>
+                    {room.typology && (
+                      <CardDescription>{room.typology}</CardDescription>
+                    )}
+                  </CardHeader>
+                </div>
               </Card>
             ))}
           </div>

@@ -11,6 +11,8 @@ interface RoomUsageData {
   automation_booking?: boolean;
   automation_lighting?: boolean;
   automation_acoustic?: boolean;
+  reservation_salle?: boolean;
+  nombre_personnes?: number;
 }
 
 interface RoomUsageFormProps {
@@ -84,6 +86,32 @@ export const RoomUsageForm = ({ data, onChange }: RoomUsageFormProps) => {
             <SelectItem value="BYOD">BYOD (Bring Your Own Device)</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="nombre-personnes">Nombre de personnes</Label>
+        <Input
+          id="nombre-personnes"
+          type="number"
+          min="0"
+          placeholder="Ex: 12"
+          value={data.nombre_personnes || ""}
+          onChange={(e) => updateField("nombre_personnes", parseInt(e.target.value) || undefined)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Réservation de salle</Label>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="reservation"
+            checked={data.reservation_salle || false}
+            onCheckedChange={(checked) => updateField("reservation_salle", checked)}
+          />
+          <label htmlFor="reservation" className="text-sm cursor-pointer">
+            Système de réservation requis
+          </label>
+        </div>
       </div>
 
       <div className="space-y-3">
