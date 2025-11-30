@@ -109,41 +109,58 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
   const addDisplay = useMutation({
     mutationFn: async () => {
       // Auto-calculate size_inches for vidéoprojecteur
-      let displayData = { ...newDisplay };
+      const displayData = { ...newDisplay };
       let finalSizeInches = displayData.size_inches;
-      
+
       if (displayData.display_type === "Vidéoprojecteur" && displayData.base_ecran_cm > 0) {
+        // Calcul silencieux de la diagonale à partir de la base (16:10)
         finalSizeInches = calculateInchesFromBase(displayData.base_ecran_cm);
       }
-      
+
+      // Valeur envoyée en base : entier ou null (la colonne est integer)
+      const finalSizeInchesDb = finalSizeInches && finalSizeInches > 0
+        ? Math.round(finalSizeInches)
+        : null;
+
       // Calculate recommended size and comment
-      const recommendedSizeInches = displayData.viewer_distance_m > 0 
-        ? calculateRecommendedSize(displayData.viewer_distance_m) 
+      const recommendedSizeInches = displayData.viewer_distance_m > 0
+        ? calculateRecommendedSize(displayData.viewer_distance_m)
         : null;
       const sizeComment = getSizeComment();
-      
+
       // Ensure all optional fields have valid values (null if not set)
       const insertData: any = {
         room_id: roomId,
         display_type: displayData.display_type,
         position: displayData.position || null,
-        size_inches: finalSizeInches || null,
+        size_inches: finalSizeInchesDb,
         distance_projection_m: displayData.distance_projection_m || null,
         base_ecran_cm: displayData.base_ecran_cm || null,
         viewer_distance_m: displayData.viewer_distance_m || null,
         recommended_size_inches: recommendedSizeInches,
         size_comparison_comment: sizeComment,
       };
-      
+
       const { error } = await supabase
         .from("displays")
         .insert([insertData]);
-      if (error) throw error;
+
+      if (error) {
+        console.error("Erreur lors de l'ajout du diffuseur", error, insertData);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["displays", roomId] });
       setNewDisplay({ display_type: "", size_inches: 0, position: "", distance_projection_m: 0, base_ecran_cm: 0, viewer_distance_m: 0 });
       toast.success("Diffuseur ajouté");
+    },
+    onError: (error: any) => {
+      toast.error("Impossible d'ajouter le diffuseur", {
+        description:
+          error?.message ||
+          "Une erreur est survenue lors de l'enregistrement. Vérifiez les valeurs saisies (taille, distances, etc.).",
+      });
     },
   });
 
