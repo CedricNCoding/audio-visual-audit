@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -356,7 +356,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     toast.success("Texte copié dans le presse-papier");
   };
 
-  const generateNotionStyleReport = () => {
+  const generateNotionStyleReport = useCallback(() => {
     if (!room) return "";
 
     let md = "";
@@ -556,7 +556,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     }
 
     return md;
-  };
+  }, [room, sources, displays, roomUsage, roomEnvironment, roomVisio, roomSonorization, connectivityZones, cables]);
 
   const downloadNotionStyleReport = () => {
     if (!notionStyleReport) {
@@ -695,7 +695,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       const report = generateNotionStyleReport();
       setNotionStyleReport(report);
     }
-  }, [room, sources, displays, roomUsage, roomEnvironment, roomVisio, roomSonorization, connectivityZones, cables]);
+  }, [room, sources, displays, roomUsage, roomEnvironment, roomVisio, roomSonorization, connectivityZones, cables, generateNotionStyleReport]);
 
   return (
     <>
