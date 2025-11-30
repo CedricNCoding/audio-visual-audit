@@ -172,7 +172,9 @@ export type Database = {
           height_cm: number | null
           id: string
           position: string | null
+          recommended_size_inches: number | null
           room_id: string
+          size_comparison_comment: string | null
           size_inches: number | null
           viewer_distance_m: number | null
           width_cm: number | null
@@ -186,7 +188,9 @@ export type Database = {
           height_cm?: number | null
           id?: string
           position?: string | null
+          recommended_size_inches?: number | null
           room_id: string
+          size_comparison_comment?: string | null
           size_inches?: number | null
           viewer_distance_m?: number | null
           width_cm?: number | null
@@ -200,7 +204,9 @@ export type Database = {
           height_cm?: number | null
           id?: string
           position?: string | null
+          recommended_size_inches?: number | null
           room_id?: string
+          size_comparison_comment?: string | null
           size_inches?: number | null
           viewer_distance_m?: number | null
           width_cm?: number | null
@@ -657,8 +663,16 @@ export type Database = {
           package_id: string | null
           project_id: string
           resume_technique_ia: string | null
+          rj45_autres_recommande: number | null
+          rj45_commentaire: string | null
+          rj45_rack_recommande: number | null
+          rj45_table_recommande: number | null
+          rj45_total_recommande: number | null
+          scenarios_usage: string | null
           typology: string | null
           updated_at: string
+          validation_technique_details: string[] | null
+          validation_technique_statut: string | null
           warnings_ia: string[] | null
         }
         Insert: {
@@ -671,8 +685,16 @@ export type Database = {
           package_id?: string | null
           project_id: string
           resume_technique_ia?: string | null
+          rj45_autres_recommande?: number | null
+          rj45_commentaire?: string | null
+          rj45_rack_recommande?: number | null
+          rj45_table_recommande?: number | null
+          rj45_total_recommande?: number | null
+          scenarios_usage?: string | null
           typology?: string | null
           updated_at?: string
+          validation_technique_details?: string[] | null
+          validation_technique_statut?: string | null
           warnings_ia?: string[] | null
         }
         Update: {
@@ -685,8 +707,16 @@ export type Database = {
           package_id?: string | null
           project_id?: string
           resume_technique_ia?: string | null
+          rj45_autres_recommande?: number | null
+          rj45_commentaire?: string | null
+          rj45_rack_recommande?: number | null
+          rj45_table_recommande?: number | null
+          rj45_total_recommande?: number | null
+          scenarios_usage?: string | null
           typology?: string | null
           updated_at?: string
+          validation_technique_details?: string[] | null
+          validation_technique_statut?: string | null
           warnings_ia?: string[] | null
         }
         Relationships: [
