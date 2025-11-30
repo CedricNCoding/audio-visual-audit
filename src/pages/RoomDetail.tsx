@@ -249,10 +249,10 @@ const RoomDetail = () => {
   };
 
   const isMobile = useIsMobile();
-  const steps = ["usage", "environment", "sonorization", "visio", "sources", "displays", "connectivity", "cables", "photos", "summary"];
+  const steps = ["usage", "environment", "sources", "displays", "sonorization", "visio", "cables", "photos", "summary"];
   const stepNames = isMobile 
-    ? ["Usage", "Env.", "Sono", "Visio", "Src.", "Diff.", "Connex.", "Câbles", "Photos", "Résumé"]
-    : ["Usage", "Environnement", "Sonorisation", "Visio", "Sources", "Diffuseurs", "Connectique", "Liaisons", "Photos", "Résumé"];
+    ? ["Usage", "Env.", "Sources", "Diff.", "Sono", "Visio", "Câbles", "Photos", "Résumé"]
+    : ["Usage", "Environnement", "Sources", "Diffuseurs", "Sonorisation", "Visio", "Liaisons", "Photos", "Résumé"];
   const currentStepIndex = steps.indexOf(activeTab);
 
   const handleNext = () => {
@@ -343,13 +343,13 @@ const RoomDetail = () => {
         </div>
 
         {/* Step Progress Indicator */}
-        <div className={`glass neon-border-yellow rounded-lg ${isMobile ? 'sticky top-0 z-40 overflow-x-auto p-2' : 'p-4 mb-4'}`}>
-          <div className="flex items-center gap-1.5 min-w-max">
+        <div className={`glass neon-border-yellow rounded-lg ${isMobile ? 'sticky top-0 z-40 p-2 -mx-4' : 'p-4 mb-4'}`}>
+          <div className={`flex items-center ${isMobile ? 'gap-1 overflow-x-auto scrollbar-hide px-2' : 'gap-1.5'} min-w-0`}>
             {stepNames.map((name, index) => (
               <button
                 key={name}
                 onClick={() => setActiveTab(steps[index])}
-                className={`flex items-center gap-1.5 ${isMobile ? 'px-2 py-1.5' : 'px-3 py-2'} rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${
+                className={`flex items-center ${isMobile ? 'gap-1 px-1.5 py-1' : 'gap-1.5 px-3 py-2'} rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${
                   index === currentStepIndex 
                     ? "neon-border-blue bg-primary text-primary-foreground" 
                     : index < currentStepIndex 
@@ -357,12 +357,12 @@ const RoomDetail = () => {
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                <span className={`flex items-center justify-center ${isMobile ? 'w-5 h-5 text-[10px]' : 'w-6 h-6 text-xs'} rounded-full ${
+                <span className={`flex items-center justify-center ${isMobile ? 'w-4 h-4 text-[9px]' : 'w-6 h-6 text-xs'} rounded-full ${
                   index === currentStepIndex ? "bg-primary-foreground text-primary" : ""
                 }`}>
                   {index + 1}
                 </span>
-                <span className={isMobile ? 'text-xs' : 'text-sm'}>{name}</span>
+                <span className={isMobile ? 'text-[10px]' : 'text-sm'}>{name}</span>
               </button>
             ))}
           </div>
@@ -459,13 +459,23 @@ const RoomDetail = () => {
           <TabsContent value="sources">
             <Card className="glass neon-border-yellow">
               <CardHeader>
-                <CardTitle className="neon-yellow">Sources en régie</CardTitle>
+                <CardTitle className="neon-yellow">Sources & Connectique</CardTitle>
                 <CardDescription>
-                  Gérez les sources de contenu en régie
+                  Gérez les sources et la connectique de la salle
                 </CardDescription>
               </CardHeader>
               <CardContent className={isMobile ? 'pb-20' : ''}>
-                <SourcesManager roomId={roomId!} />
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 neon-blue">Sources en salle (Connectique)</h3>
+                    <ConnectivityManager roomId={roomId!} />
+                  </div>
+                  
+                  <div className="border-t border-border pt-6">
+                    <h3 className="text-lg font-semibold mb-3 neon-yellow">Sources en régie</h3>
+                    <SourcesManager roomId={roomId!} />
+                  </div>
+                </div>
                 <StepNavigation
                   currentStep={currentStepIndex + 1}
                   totalSteps={steps.length}
@@ -509,26 +519,6 @@ const RoomDetail = () => {
                   data={sonorizationData}
                   onChange={setSonorizationData}
                 />
-                <StepNavigation
-                  currentStep={currentStepIndex + 1}
-                  totalSteps={steps.length}
-                  onNext={handleNext}
-                  onPrevious={handlePrevious}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="connectivity">
-            <Card>
-              <CardHeader>
-                <CardTitle>Connectique utilisateur</CardTitle>
-                <CardDescription>
-                  Zones de connectique et prises
-                </CardDescription>
-              </CardHeader>
-              <CardContent className={isMobile ? 'pb-20' : ''}>
-                <ConnectivityManager roomId={roomId!} />
                 <StepNavigation
                   currentStep={currentStepIndex + 1}
                   totalSteps={steps.length}
