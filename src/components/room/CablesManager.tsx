@@ -9,7 +9,26 @@ import { Card } from "@/components/ui/card";
 import { Plus, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
-const SIGNAL_TYPES = ["HDMI", "USB", "DisplayPort", "RJ45", "Audio"];
+const SIGNAL_TYPES = [
+  "Vidéo HDMI",
+  "Vidéo HDBaseT",
+  "Vidéo IP / AVoIP",
+  "USB",
+  "Audio analogique",
+  "Audio numérique / Dante",
+  "Réseau RJ45",
+];
+
+const TRANSPORT_TYPES = [
+  "HDMI direct",
+  "Extender HDMI",
+  "HDBaseT",
+  "Fibre",
+  "RJ45",
+  "XLR",
+  "Jack",
+  "Dante",
+];
 
 interface CablesManagerProps {
   roomId: string;
@@ -21,7 +40,9 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
     point_a: "",
     point_b: "",
     signal_type: "",
+    transport: "",
     distance_m: 0,
+    commentaire: "",
   });
 
   const { data: cables } = useQuery({
@@ -40,7 +61,7 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cables", roomId] });
-      setNewCable({ point_a: "", point_b: "", signal_type: "", distance_m: 0 });
+      setNewCable({ point_a: "", point_b: "", signal_type: "", transport: "", distance_m: 0, commentaire: "" });
       toast.success("Liaison ajoutée");
     },
   });
@@ -74,46 +95,199 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
     },
   });
 
+  const { data: sonorization } = useQuery({
+    queryKey: ["room_sonorization", roomId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("room_sonorization")
+        .select("*")
+        .eq("room_id", roomId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const generateBasicCables = useMutation({
     mutationFn: async () => {
       if (!sources?.length || !displays?.length) {
         throw new Error("Au moins une source et un diffuseur sont nécessaires");
       }
 
-      const cablesToCreate = [];
-      
-      // First display as main display
-      const mainDisplay = displays[0];
-      
-      // Create connection from first user source (laptop/PC) to main display
-      const userSource = sources.find(s => 
-        s.source_type.toLowerCase().includes("pc") || 
-        s.source_type.toLowerCase().includes("laptop") ||
-        s.source_type.toLowerCase().includes("ordinateur")
-      ) || sources[0];
-      
-      cablesToCreate.push({
-        room_id: roomId,
-        point_a: userSource.source_type,
-        point_b: mainDisplay.display_type,
-        signal_type: "HDMI",
-        distance_m: 5,
-      });
+      // Check if cables already exist
+      if (cables && cables.length > 0) {
+        const confirm = window.confirm(
+          "Des liaisons existent déjà. Voulez-vous ajouter des liaisons de base en plus ?"
+        );
+        if (!confirm) return;
+      }
 
-      // Create connection from control room source to main display if exists
-      const controlRoomSource = sources.find(s => 
-        s.source_type.toLowerCase().includes("régie") ||
-        s.source_type.toLowerCase().includes("regie")
+      const cablesToCreate: any[] = [];
+      
+      // ========== LOGIQUE VIDÉO ==========
+      const videoSources = sources.filter(s => 
+        !s.source_type.toLowerCase().includes("audio") &&
+        !s.source_type.toLowerCase().includes("micro")
       );
       
-      if (controlRoomSource) {
+      if (videoSources.length === 1 && displays.length === 1) {
+        // Cas 1: 1 source, 1 diffuseur -> Direct
         cablesToCreate.push({
           room_id: roomId,
-          point_a: "Régie",
-          point_b: mainDisplay.display_type,
-          signal_type: "HDMI",
-          distance_m: 10,
+          point_a: videoSources[0].source_type,
+          point_b: displays[0].display_type,
+          signal_type: "Vidéo HDMI",
+          transport: "HDMI direct",
+          distance_m: 5,
+          commentaire: "Liaison directe générée automatiquement",
         });
+      } else if (videoSources.length > 1 && displays.length === 1) {
+        // Cas 2: Plusieurs sources, 1 diffuseur -> Sélecteur
+        const selectorName = "Sélecteur vidéo";
+        
+        // Liaisons sources -> sélecteur
+        videoSources.forEach(source => {
+          cablesToCreate.push({
+            room_id: roomId,
+            point_a: source.source_type,
+            point_b: selectorName,
+            signal_type: "Vidéo HDMI",
+            transport: "HDMI direct",
+            distance_m: 3,
+            commentaire: "Liaison vers sélecteur générée automatiquement",
+          });
+        });
+        
+        // Liaison sélecteur -> diffuseur
+        cablesToCreate.push({
+          room_id: roomId,
+          point_a: selectorName,
+          point_b: displays[0].display_type,
+          signal_type: "Vidéo HDMI",
+          transport: "HDMI direct",
+          distance_m: 5,
+          commentaire: "Liaison depuis sélecteur générée automatiquement",
+        });
+      } else if (videoSources.length > 1 && displays.length > 1) {
+        // Cas 3: Plusieurs sources, plusieurs diffuseurs -> Matrice
+        const matrixName = "Matrice vidéo";
+        
+        // Liaisons sources -> matrice
+        videoSources.forEach(source => {
+          cablesToCreate.push({
+            room_id: roomId,
+            point_a: source.source_type,
+            point_b: matrixName,
+            signal_type: "Vidéo HDMI",
+            transport: "HDMI direct",
+            distance_m: 3,
+            commentaire: "Liaison vers matrice générée automatiquement",
+          });
+        });
+        
+        // Liaisons matrice -> diffuseurs
+        displays.forEach(display => {
+          cablesToCreate.push({
+            room_id: roomId,
+            point_a: matrixName,
+            point_b: display.display_type,
+            signal_type: "Vidéo HDMI",
+            transport: "HDMI direct",
+            distance_m: 5,
+            commentaire: "Liaison depuis matrice générée automatiquement",
+          });
+        });
+      } else if (videoSources.length === 1 && displays.length > 1) {
+        // Cas 4: 1 source, plusieurs diffuseurs -> Distribution
+        displays.forEach(display => {
+          cablesToCreate.push({
+            room_id: roomId,
+            point_a: videoSources[0].source_type,
+            point_b: display.display_type,
+            signal_type: "Vidéo HDMI",
+            transport: "HDMI direct",
+            distance_m: 5,
+            commentaire: "Distribution vidéo générée automatiquement",
+          });
+        });
+      }
+
+      // ========== LOGIQUE AUDIO ==========
+      if (sonorization) {
+        const audioSources: string[] = [];
+        
+        // Collecter les sources audio depuis sonorization
+        if (sonorization.nb_micro_main_hf && sonorization.nb_micro_main_hf > 0) {
+          audioSources.push("Micros main HF");
+        }
+        if (sonorization.nb_micro_cravate_hf && sonorization.nb_micro_cravate_hf > 0) {
+          audioSources.push("Micros cravate HF");
+        }
+        if (sonorization.nb_micro_pupitre && sonorization.nb_micro_pupitre > 0) {
+          audioSources.push("Micros pupitre");
+        }
+        if (sonorization.nb_micro_table && sonorization.nb_micro_table > 0) {
+          audioSources.push("Micros table");
+        }
+        if (sonorization.nb_micro_plafond_beamforming && sonorization.nb_micro_plafond_beamforming > 0) {
+          audioSources.push("Micros plafond beamforming");
+        }
+        
+        // Ajouter sources PC/players
+        const pcSources = sources.filter(s => 
+          s.source_type.toLowerCase().includes("pc") ||
+          s.source_type.toLowerCase().includes("ordinateur") ||
+          s.source_type.toLowerCase().includes("player")
+        );
+        pcSources.forEach(s => audioSources.push(s.source_type + " (audio)"));
+
+        if (audioSources.length > 0) {
+          const hasMultipleZones = sonorization.diffusion_homogene || sonorization.diffusion_locale || sonorization.diffusion_orientee;
+          
+          if (audioSources.length > 1 || hasMultipleZones) {
+            // Plusieurs sources ou zones -> DSP/Matrice audio
+            const dspName = hasMultipleZones ? "Matrice audio / DSP multizone" : "DSP / Mixeur audio";
+            
+            // Liaisons sources -> DSP
+            audioSources.forEach(source => {
+              cablesToCreate.push({
+                room_id: roomId,
+                point_a: source,
+                point_b: dspName,
+                signal_type: sonorization.dante_souhaite ? "Audio numérique / Dante" : "Audio analogique",
+                transport: sonorization.dante_souhaite ? "Dante" : "XLR",
+                distance_m: 5,
+                commentaire: "Liaison audio vers DSP générée automatiquement",
+              });
+            });
+            
+            // Liaison DSP -> Amplification
+            cablesToCreate.push({
+              room_id: roomId,
+              point_a: dspName,
+              point_b: "Amplification / Enceintes",
+              signal_type: sonorization.dante_souhaite ? "Audio numérique / Dante" : "Audio analogique",
+              transport: sonorization.dante_souhaite ? "Dante" : "XLR",
+              distance_m: 10,
+              commentaire: "Liaison DSP vers amplification générée automatiquement",
+            });
+          } else {
+            // 1 source, 1 zone -> Direct
+            cablesToCreate.push({
+              room_id: roomId,
+              point_a: audioSources[0],
+              point_b: "Amplification / Enceintes",
+              signal_type: "Audio analogique",
+              transport: "XLR",
+              distance_m: 8,
+              commentaire: "Liaison audio directe générée automatiquement",
+            });
+          }
+        }
+      }
+
+      if (cablesToCreate.length === 0) {
+        throw new Error("Aucune liaison à générer avec la configuration actuelle");
       }
 
       const { error } = await supabase.from("cables").insert(cablesToCreate);
@@ -121,7 +295,7 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cables", roomId] });
-      toast.success("Liaisons de base générées");
+      toast.success("Liaisons de base générées (vidéo + audio)");
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -141,7 +315,7 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
           Générer les liaisons de base
         </Button>
       </div>
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-6">
         <Input
           placeholder="Point A"
           value={newCable.point_a}
@@ -157,10 +331,25 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
           onValueChange={(value) => setNewCable({ ...newCable, signal_type: value })}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Signal" />
+            <SelectValue placeholder="Type signal" />
           </SelectTrigger>
           <SelectContent>
             {SIGNAL_TYPES.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={newCable.transport}
+          onValueChange={(value) => setNewCable({ ...newCable, transport: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Transport" />
+          </SelectTrigger>
+          <SelectContent>
+            {TRANSPORT_TYPES.map((type) => (
               <SelectItem key={type} value={type}>
                 {type}
               </SelectItem>
@@ -178,19 +367,103 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
         </Button>
       </div>
       {cables?.map((cable) => (
-        <Card key={cable.id} className="p-4 flex justify-between items-start">
-          <div>
+        <Card key={cable.id} className="p-4">
+          <div className="flex justify-between items-start mb-3">
             <p className="font-medium">
               {cable.point_a} → {cable.point_b}
             </p>
-            <p className="text-sm text-muted-foreground">
-              {cable.signal_type} • {cable.distance_m}m (marge: {cable.distance_with_margin_m}m)
-            </p>
-            <p className="text-sm text-primary mt-1">💡 {cable.cable_recommendation}</p>
+            <Button variant="ghost" size="icon" onClick={() => deleteCable.mutate(cable.id)}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => deleteCable.mutate(cable.id)}>
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
+          <div className="grid gap-3 md:grid-cols-4">
+            <div>
+              <Label className="text-xs">Type signal</Label>
+              <Select
+                value={cable.signal_type}
+                onValueChange={async (value) => {
+                  const { error } = await supabase
+                    .from("cables")
+                    .update({ signal_type: value })
+                    .eq("id", cable.id);
+                  if (!error) {
+                    queryClient.invalidateQueries({ queryKey: ["cables", roomId] });
+                    toast.success("Type de signal mis à jour");
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SIGNAL_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Transport</Label>
+              <Select
+                value={cable.transport || ""}
+                onValueChange={async (value) => {
+                  const { error } = await supabase
+                    .from("cables")
+                    .update({ transport: value })
+                    .eq("id", cable.id);
+                  if (!error) {
+                    queryClient.invalidateQueries({ queryKey: ["cables", roomId] });
+                    toast.success("Transport mis à jour");
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRANSPORT_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Distance (m)</Label>
+              <Input
+                type="number"
+                value={cable.distance_m}
+                onChange={async (e) => {
+                  const newDistance = parseFloat(e.target.value) || 0;
+                  const { error } = await supabase
+                    .from("cables")
+                    .update({ distance_m: newDistance })
+                    .eq("id", cable.id);
+                  if (!error) {
+                    queryClient.invalidateQueries({ queryKey: ["cables", roomId] });
+                  }
+                }}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Marge (m)</Label>
+              <Input
+                type="number"
+                value={cable.distance_with_margin_m || cable.distance_m * 1.2}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+          </div>
+          {cable.commentaire && (
+            <p className="text-xs text-muted-foreground mt-2">{cable.commentaire}</p>
+          )}
+          {cable.cable_recommendation && (
+            <p className="text-sm text-primary mt-2">💡 {cable.cable_recommendation}</p>
+          )}
         </Card>
       ))}
     </div>
