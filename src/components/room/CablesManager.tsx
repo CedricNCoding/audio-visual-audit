@@ -49,7 +49,11 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
   const { data: cables } = useQuery({
     queryKey: ["cables", roomId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("cables").select("*").eq("room_id", roomId);
+      const { data, error } = await supabase
+        .from("cables")
+        .select("*")
+        .eq("room_id", roomId)
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
     },
