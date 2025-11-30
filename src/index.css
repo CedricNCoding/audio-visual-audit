@@ -8,83 +8,69 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 210 40% 10%;
+    /* Thème sombre néon avec glass-morphism */
+    --background: 0 0% 5%;
+    --foreground: 60 100% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 210 40% 10%;
+    --card: 0 0% 8%;
+    --card-foreground: 60 100% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 210 40% 10%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 60 100% 95%;
 
-    --primary: 186 91% 35%;
-    --primary-foreground: 0 0% 100%;
+    /* Néon jaune pour accents */
+    --primary: 60 100% 65%;
+    --primary-foreground: 0 0% 5%;
 
-    --secondary: 210 40% 92%;
-    --secondary-foreground: 210 40% 10%;
+    /* Bleu néon pour boutons actifs */
+    --secondary: 190 100% 65%;
+    --secondary-foreground: 0 0% 5%;
 
-    --muted: 210 40% 95%;
-    --muted-foreground: 210 20% 40%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 186 60% 50%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 190 100% 65%;
+    --accent-foreground: 0 0% 5%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 30% 88%;
-    --input: 210 30% 88%;
-    --ring: 186 91% 35%;
+    --border: 0 0% 20%;
+    --input: 0 0% 15%;
+    --ring: 60 100% 65%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 210 40% 98%;
-    --sidebar-foreground: 210 40% 20%;
-    --sidebar-primary: 186 91% 35%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 92%;
-    --sidebar-accent-foreground: 210 40% 10%;
-    --sidebar-border: 210 30% 88%;
-    --sidebar-ring: 186 91% 35%;
+    /* Glass-morphism variables */
+    --glass-bg: rgba(10, 10, 10, 0.6);
+    --glass-border: rgba(239, 255, 79, 0.2);
+    --glass-blur: blur(12px);
+    --neon-yellow: 60 100% 65%;
+    --neon-blue: 190 100% 65%;
+    --neon-glow: 0 0 20px;
   }
 
   .dark {
-    --background: 210 50% 8%;
-    --foreground: 210 40% 98%;
-
-    --card: 210 45% 12%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 210 45% 12%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 186 91% 45%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 210 40% 20%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 210 40% 18%;
-    --muted-foreground: 210 30% 65%;
-
-    --accent: 186 60% 45%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62% 50%;
+    /* Identique au root pour thème sombre unique */
+    --background: 0 0% 5%;
+    --foreground: 60 100% 95%;
+    --card: 0 0% 8%;
+    --card-foreground: 60 100% 95%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 60 100% 95%;
+    --primary: 60 100% 65%;
+    --primary-foreground: 0 0% 5%;
+    --secondary: 190 100% 65%;
+    --secondary-foreground: 0 0% 5%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 190 100% 65%;
+    --accent-foreground: 0 0% 5%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 210 40% 22%;
-    --input: 210 40% 22%;
-    --ring: 186 91% 45%;
-    
-    --sidebar-background: 210 50% 10%;
-    --sidebar-foreground: 210 40% 90%;
-    --sidebar-primary: 186 91% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 18%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 210 40% 22%;
-    --sidebar-ring: 186 91% 45%;
+    --border: 0 0% 20%;
+    --input: 0 0% 15%;
+    --ring: 60 100% 65%;
   }
 }
 
@@ -95,5 +81,37 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+}
+
+@layer utilities {
+  /* Glass-morphism effect */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+  }
+
+  /* Neon effects */
+  .neon-yellow {
+    color: hsl(var(--neon-yellow));
+    text-shadow: 0 0 10px hsl(var(--neon-yellow) / 0.5);
+  }
+
+  .neon-blue {
+    color: hsl(var(--neon-blue));
+    text-shadow: 0 0 10px hsl(var(--neon-blue) / 0.5);
+  }
+
+  .neon-border-yellow {
+    border-color: hsl(var(--neon-yellow));
+    box-shadow: 0 0 10px hsl(var(--neon-yellow) / 0.3);
+  }
+
+  .neon-border-blue {
+    border-color: hsl(var(--neon-blue));
+    box-shadow: 0 0 10px hsl(var(--neon-blue) / 0.3);
   }
 }

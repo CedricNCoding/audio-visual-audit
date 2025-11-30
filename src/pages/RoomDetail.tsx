@@ -15,6 +15,8 @@ import { SourcesManager } from "@/components/room/SourcesManager";
 import { DisplaysManager } from "@/components/room/DisplaysManager";
 import { ConnectivityManager } from "@/components/room/ConnectivityManager";
 import { CablesManager } from "@/components/room/CablesManager";
+import { PhotosManager } from "@/components/room/PhotosManager";
+import { RoomSummary } from "@/components/room/RoomSummary";
 
 const RoomDetail = () => {
   const { roomId } = useParams();
@@ -165,14 +167,16 @@ const RoomDetail = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
-            <TabsTrigger value="usage">Usage</TabsTrigger>
-            <TabsTrigger value="environment">Environnement</TabsTrigger>
-            <TabsTrigger value="visio">Visio</TabsTrigger>
-            <TabsTrigger value="sources">Sources</TabsTrigger>
-            <TabsTrigger value="displays">Diffuseurs</TabsTrigger>
-            <TabsTrigger value="connectivity">Connectique</TabsTrigger>
-            <TabsTrigger value="cables">Liaisons</TabsTrigger>
+          <TabsList className="glass neon-border-yellow flex flex-wrap justify-start gap-2 h-auto p-2">
+            <TabsTrigger value="usage" className="data-[state=active]:neon-border-blue">Usage</TabsTrigger>
+            <TabsTrigger value="environment" className="data-[state=active]:neon-border-blue">Environnement</TabsTrigger>
+            <TabsTrigger value="visio" className="data-[state=active]:neon-border-blue">Visio</TabsTrigger>
+            <TabsTrigger value="sources" className="data-[state=active]:neon-border-blue">Sources</TabsTrigger>
+            <TabsTrigger value="displays" className="data-[state=active]:neon-border-blue">Diffuseurs</TabsTrigger>
+            <TabsTrigger value="connectivity" className="data-[state=active]:neon-border-blue">Connectique</TabsTrigger>
+            <TabsTrigger value="cables" className="data-[state=active]:neon-border-blue">Liaisons</TabsTrigger>
+            <TabsTrigger value="photos" className="data-[state=active]:neon-border-blue">Photos</TabsTrigger>
+            <TabsTrigger value="summary" className="data-[state=active]:neon-border-blue">Résumé</TabsTrigger>
           </TabsList>
 
           <TabsContent value="usage">
@@ -227,11 +231,11 @@ const RoomDetail = () => {
           </TabsContent>
 
           <TabsContent value="sources">
-            <Card>
+            <Card className="glass neon-border-yellow">
               <CardHeader>
-                <CardTitle>Sources</CardTitle>
+                <CardTitle className="neon-yellow">Sources en régie</CardTitle>
                 <CardDescription>
-                  Gérez les sources de contenu
+                  Gérez les sources de contenu en régie
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -269,9 +273,9 @@ const RoomDetail = () => {
           </TabsContent>
 
           <TabsContent value="cables">
-            <Card>
+            <Card className="glass neon-border-yellow">
               <CardHeader>
-                <CardTitle>Liaisons & Câbles</CardTitle>
+                <CardTitle className="neon-yellow">Liaisons & Câbles</CardTitle>
                 <CardDescription>
                   Gérez les connexions et recommandations
                 </CardDescription>
@@ -280,6 +284,24 @@ const RoomDetail = () => {
                 <CablesManager roomId={roomId!} />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="photos">
+            <Card className="glass neon-border-yellow">
+              <CardHeader>
+                <CardTitle className="neon-yellow">Photos & Plans</CardTitle>
+                <CardDescription>
+                  Téléchargez et annotez vos photos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PhotosManager roomId={roomId!} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="summary">
+            <RoomSummary roomId={roomId!} />
           </TabsContent>
         </Tabs>
       </div>

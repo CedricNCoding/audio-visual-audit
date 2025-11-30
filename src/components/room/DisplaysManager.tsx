@@ -22,6 +22,8 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
     display_type: "",
     size_inches: 0,
     position: "",
+    distance_projection_m: 0,
+    base_ecran_cm: 0,
   });
 
   const { data: displays } = useQuery({
@@ -45,7 +47,7 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["displays", roomId] });
-      setNewDisplay({ display_type: "", size_inches: 0, position: "" });
+      setNewDisplay({ display_type: "", size_inches: 0, position: "", distance_projection_m: 0, base_ecran_cm: 0 });
       toast.success("Diffuseur ajouté");
     },
   });
@@ -100,12 +102,40 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
           <Plus className="h-4 w-4" />
         </Button>
       </div>
+      
+      {newDisplay.display_type === "Vidéoprojecteur" && (
+        <div className="glass neon-border-yellow p-4 rounded-lg grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Distance de projection (m)</Label>
+            <Input
+              type="number"
+              step="0.1"
+              placeholder="Ex: 3.5"
+              value={newDisplay.distance_projection_m || ""}
+              onChange={(e) => setNewDisplay({ ...newDisplay, distance_projection_m: parseFloat(e.target.value) || 0 })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Base de l'écran (cm)</Label>
+            <Input
+              type="number"
+              placeholder="Ex: 120"
+              value={newDisplay.base_ecran_cm || ""}
+              onChange={(e) => setNewDisplay({ ...newDisplay, base_ecran_cm: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+        </div>
+      )}
+      
       <div className="space-y-2">
         {displays?.map((display) => (
-          <Card key={display.id} className="p-4 flex justify-between items-center">
+          <Card key={display.id} className="p-4 flex justify-between items-center glass">
             <div>
               <p className="font-medium">{display.display_type} {display.size_inches}"</p>
               <p className="text-sm text-muted-foreground">{display.position}</p>
+              {display.display_type === "Vidéoprojecteur" && display.distance_projection_m && (
+                <p className="text-xs text-primary">Distance: {display.distance_projection_m}m • Base: {display.base_ecran_cm}cm</p>
+              )}
             </div>
             <Button variant="ghost" size="icon" onClick={() => deleteDisplay.mutate(display.id)}>
               <Trash2 className="h-4 w-4 text-destructive" />

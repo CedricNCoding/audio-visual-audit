@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, FolderOpen, Calendar } from "lucide-react";
+import { Plus, FolderOpen, Calendar, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -70,6 +70,33 @@ const Projects = () => {
     },
     onError: (error: any) => {
       toast.error("Erreur lors de la création : " + error.message);
+    },
+  });
+
+  const deleteProject = useMutation({
+    mutationFn: async (projectId: string) => {
+      // Delete all rooms in this project first
+      const { error: roomsError } = await supabase
+        .from("rooms")
+        .delete()
+        .eq("project_id", projectId);
+      
+      if (roomsError) throw roomsError;
+
+      // Then delete the project
+      const { error: projectError } = await supabase
+        .from("projects")
+        .delete()
+        .eq("id", projectId);
+      
+      if (projectError) throw projectError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("Projet supprimé avec succès");
+    },
+    onError: (error: any) => {
+      toast.error("Erreur lors de la suppression : " + error.message);
     },
   });
 
@@ -232,27 +259,41 @@ const Projects = () => {
             {projects?.map((project) => (
               <Card
                 key={project.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => navigate(`/projects/${project.id}`)}
+                className="cursor-pointer hover:shadow-lg transition-shadow glass relative group"
               >
-                <CardHeader>
-                  <CardTitle className="line-clamp-1">{project.client_name}</CardTitle>
-                  {project.site_name && (
-                    <CardDescription className="line-clamp-1">
-                      {project.site_name}
-                    </CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  {project.decision_date && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        Décision: {new Date(project.decision_date).toLocaleDateString("fr-FR")}
-                      </span>
-                    </div>
-                  )}
-                </CardContent>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm("Supprimer ce projet et toutes ses salles ?")) {
+                      deleteProject.mutate(project.id);
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+                <div onClick={() => navigate(`/projects/${project.id}`)}>
+                  <CardHeader>
+                    <CardTitle className="line-clamp-1 neon-yellow">{project.client_name}</CardTitle>
+                    {project.site_name && (
+                      <CardDescription className="line-clamp-1">
+                        {project.site_name}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    {project.decision_date && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          Décision: {new Date(project.decision_date).toLocaleDateString("fr-FR")}
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
+                </div>
               </Card>
             ))}
           </div>

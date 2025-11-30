@@ -58,10 +58,29 @@ export type Database = {
           },
         ]
       }
+      camera_types: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       connectivity_zones: {
         Row: {
           created_at: string
           displayport_count: number | null
+          distance_to_control_room_m: number | null
           hdmi_count: number | null
           id: string
           power_230v_count: number | null
@@ -74,6 +93,7 @@ export type Database = {
         Insert: {
           created_at?: string
           displayport_count?: number | null
+          distance_to_control_room_m?: number | null
           hdmi_count?: number | null
           id?: string
           power_230v_count?: number | null
@@ -86,6 +106,7 @@ export type Database = {
         Update: {
           created_at?: string
           displayport_count?: number | null
+          distance_to_control_room_m?: number | null
           hdmi_count?: number | null
           id?: string
           power_230v_count?: number | null
@@ -107,9 +128,11 @@ export type Database = {
       }
       displays: {
         Row: {
+          base_ecran_cm: number | null
           bottom_height_cm: number | null
           created_at: string
           display_type: string
+          distance_projection_m: number | null
           height_cm: number | null
           id: string
           position: string | null
@@ -119,9 +142,11 @@ export type Database = {
           width_cm: number | null
         }
         Insert: {
+          base_ecran_cm?: number | null
           bottom_height_cm?: number | null
           created_at?: string
           display_type: string
+          distance_projection_m?: number | null
           height_cm?: number | null
           id?: string
           position?: string | null
@@ -131,9 +156,11 @@ export type Database = {
           width_cm?: number | null
         }
         Update: {
+          base_ecran_cm?: number | null
           bottom_height_cm?: number | null
           created_at?: string
           display_type?: string
+          distance_projection_m?: number | null
           height_cm?: number | null
           id?: string
           position?: string | null
@@ -151,6 +178,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      microphone_types: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       packages: {
         Row: {
@@ -326,7 +371,9 @@ export type Database = {
           created_at: string
           id: string
           main_usage: string | null
+          nombre_personnes: number | null
           platform_type: string | null
+          reservation_salle: boolean | null
           room_id: string
           updated_at: string
           usage_intensity: string | null
@@ -339,7 +386,9 @@ export type Database = {
           created_at?: string
           id?: string
           main_usage?: string | null
+          nombre_personnes?: number | null
           platform_type?: string | null
+          reservation_salle?: boolean | null
           room_id: string
           updated_at?: string
           usage_intensity?: string | null
@@ -352,7 +401,9 @@ export type Database = {
           created_at?: string
           id?: string
           main_usage?: string | null
+          nombre_personnes?: number | null
           platform_type?: string | null
+          reservation_salle?: boolean | null
           room_id?: string
           updated_at?: string
           usage_intensity?: string | null
