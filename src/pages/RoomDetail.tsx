@@ -19,7 +19,6 @@ import { ConnectivityManager } from "@/components/room/ConnectivityManager";
 import { CablesManager } from "@/components/room/CablesManager";
 import { PhotosManager } from "@/components/room/PhotosManager";
 import { RoomSummary } from "@/components/room/RoomSummary";
-import { StepNavigation } from "@/components/room/StepNavigation";
 
 const RoomDetail = () => {
   const { roomId } = useParams();
@@ -210,28 +209,6 @@ const RoomDetail = () => {
   const stepNames = ["Usage", "Environnement", "Visio", "Sources", "Diffuseurs", "Connectique", "Liaisons", "Photos", "Résumé"];
   const currentStepIndex = steps.indexOf(activeTab);
 
-  const handleNext = () => {
-    // Save current step if needed
-    if (activeTab === "usage") {
-      saveUsage.mutate(usageData);
-    } else if (activeTab === "environment") {
-      saveEnvironment.mutate(environmentData);
-    } else if (activeTab === "visio") {
-      saveVisio.mutate(visioData);
-    }
-    
-    // Move to next step
-    if (currentStepIndex < steps.length - 1) {
-      setActiveTab(steps[currentStepIndex + 1]);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentStepIndex > 0) {
-      setActiveTab(steps[currentStepIndex - 1]);
-    }
-  };
-
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -311,13 +288,16 @@ const RoomDetail = () => {
           <div className="flex justify-between items-center mb-2">
             {stepNames.map((name, index) => (
               <div key={name} className="flex-1 flex items-center">
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  index === currentStepIndex ? "neon-border-blue bg-primary text-primary-foreground" :
-                  index < currentStepIndex ? "bg-primary/50 text-primary-foreground" :
-                  "bg-muted text-muted-foreground"
-                }`}>
+                <button
+                  onClick={() => setActiveTab(steps[index])}
+                  className={`flex items-center justify-center w-8 h-8 rounded-full cursor-pointer transition-all hover:scale-110 ${
+                    index === currentStepIndex ? "neon-border-blue bg-primary text-primary-foreground" :
+                    index < currentStepIndex ? "bg-primary/50 text-primary-foreground" :
+                    "bg-muted text-muted-foreground"
+                  }`}
+                >
                   {index + 1}
-                </div>
+                </button>
                 {index < stepNames.length - 1 && (
                   <div className={`flex-1 h-0.5 ${index < currentStepIndex ? "bg-primary" : "bg-muted"}`} />
                 )}
@@ -325,8 +305,14 @@ const RoomDetail = () => {
             ))}
           </div>
           <div className="flex justify-between text-xs text-muted-foreground">
-            {stepNames.map((name) => (
-              <span key={name} className="flex-1 text-center">{name}</span>
+            {stepNames.map((name, index) => (
+              <button
+                key={name}
+                onClick={() => setActiveTab(steps[index])}
+                className="flex-1 text-center hover:text-foreground transition-colors cursor-pointer"
+              >
+                {name}
+              </button>
             ))}
           </div>
         </div>
@@ -357,12 +343,6 @@ const RoomDetail = () => {
                   data={usageData}
                   onChange={setUsageData}
                 />
-                <StepNavigation
-                  currentStep={currentStepIndex + 1}
-                  totalSteps={steps.length}
-                  onNext={handleNext}
-                  onPrevious={handlePrevious}
-                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -379,12 +359,6 @@ const RoomDetail = () => {
                 <RoomEnvironmentForm
                   data={environmentData}
                   onChange={setEnvironmentData}
-                />
-                <StepNavigation
-                  currentStep={currentStepIndex + 1}
-                  totalSteps={steps.length}
-                  onNext={handleNext}
-                  onPrevious={handlePrevious}
                 />
               </CardContent>
             </Card>
@@ -403,12 +377,6 @@ const RoomDetail = () => {
                   data={visioData}
                   onChange={setVisioData}
                 />
-                <StepNavigation
-                  currentStep={currentStepIndex + 1}
-                  totalSteps={steps.length}
-                  onNext={handleNext}
-                  onPrevious={handlePrevious}
-                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -423,12 +391,6 @@ const RoomDetail = () => {
               </CardHeader>
               <CardContent>
                 <SourcesManager roomId={roomId!} />
-                <StepNavigation
-                  currentStep={currentStepIndex + 1}
-                  totalSteps={steps.length}
-                  onNext={handleNext}
-                  onPrevious={handlePrevious}
-                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -443,12 +405,6 @@ const RoomDetail = () => {
               </CardHeader>
               <CardContent>
                 <DisplaysManager roomId={roomId!} />
-                <StepNavigation
-                  currentStep={currentStepIndex + 1}
-                  totalSteps={steps.length}
-                  onNext={handleNext}
-                  onPrevious={handlePrevious}
-                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -463,12 +419,6 @@ const RoomDetail = () => {
               </CardHeader>
               <CardContent>
                 <ConnectivityManager roomId={roomId!} />
-                <StepNavigation
-                  currentStep={currentStepIndex + 1}
-                  totalSteps={steps.length}
-                  onNext={handleNext}
-                  onPrevious={handlePrevious}
-                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -483,12 +433,6 @@ const RoomDetail = () => {
               </CardHeader>
               <CardContent>
                 <CablesManager roomId={roomId!} />
-                <StepNavigation
-                  currentStep={currentStepIndex + 1}
-                  totalSteps={steps.length}
-                  onNext={handleNext}
-                  onPrevious={handlePrevious}
-                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -503,12 +447,6 @@ const RoomDetail = () => {
               </CardHeader>
               <CardContent>
                 <PhotosManager roomId={roomId!} />
-                <StepNavigation
-                  currentStep={currentStepIndex + 1}
-                  totalSteps={steps.length}
-                  onNext={handleNext}
-                  onPrevious={handlePrevious}
-                />
               </CardContent>
             </Card>
           </TabsContent>

@@ -58,9 +58,19 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
         }
       }
       
+      // Ensure all optional fields have valid values (null if not set)
+      const insertData: any = {
+        room_id: roomId,
+        display_type: displayData.display_type,
+        position: displayData.position || null,
+        size_inches: displayData.size_inches || null,
+        distance_projection_m: displayData.distance_projection_m || null,
+        base_ecran_cm: displayData.base_ecran_cm || null,
+      };
+      
       const { error } = await supabase
         .from("displays")
-        .insert([{ ...displayData, room_id: roomId }]);
+        .insert([insertData]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -116,7 +126,10 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={() => addDisplay.mutate()} disabled={!newDisplay.display_type}>
+        <Button 
+          onClick={() => addDisplay.mutate()} 
+          disabled={!newDisplay.display_type || addDisplay.isPending}
+        >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
