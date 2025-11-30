@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,7 @@ interface RoomSummaryProps {
 export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
   const queryClient = useQueryClient();
   const [exportText, setExportText] = useState("");
+  const [notionStyleReport, setNotionStyleReport] = useState("");
   const [aiAnalysisData, setAiAnalysisData] = useState<any>(null);
   const [showAiResults, setShowAiResults] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -355,6 +356,225 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     toast.success("Texte copié dans le presse-papier");
   };
 
+  const generateNotionStyleReport = () => {
+    if (!room) return "";
+
+    let md = "";
+    
+    // Titre principal
+    md += `# 📋 ${room.name || "Salle"} – ${room.typology || "N/A"}\n\n`;
+    
+    // Sous-titre projet
+    if (room.projects) {
+      md += `**Projet:** ${room.projects.client_name}`;
+      if (room.projects.site_name) md += ` – Site: ${room.projects.site_name}`;
+      md += `\n\n`;
+    }
+
+    // Usage & Contexte
+    md += `## 🎯 Usage & Contexte\n\n`;
+    if (roomUsage) {
+      if (roomUsage.nombre_personnes) md += `- **Capacité:** ${roomUsage.nombre_personnes} personnes\n`;
+      if (roomUsage.main_usage) md += `- **Usage principal:** ${roomUsage.main_usage}\n`;
+      if (roomUsage.usage_intensity) md += `- **Intensité d'usage:** ${roomUsage.usage_intensity}\n`;
+      if (roomUsage.user_skill_level) md += `- **Niveau utilisateurs:** ${roomUsage.user_skill_level}\n`;
+      if (roomUsage.platform_type) md += `- **Plateforme:** ${roomUsage.platform_type}\n`;
+      md += `- **Réservation salle:** ${roomUsage.reservation_salle ? "Oui" : "Non"}\n`;
+    }
+    md += `\n`;
+
+    // Géométrie & Matériaux
+    md += `## 📐 Géométrie & Matériaux\n\n`;
+    if (roomEnvironment) {
+      const dims = [];
+      if (roomEnvironment.length_m) dims.push(`${roomEnvironment.length_m}m`);
+      if (roomEnvironment.width_m) dims.push(`${roomEnvironment.width_m}m`);
+      if (roomEnvironment.height_m) dims.push(`${roomEnvironment.height_m}m`);
+      if (dims.length > 0) md += `- **Dimensions:** ${dims.join(" × ")}\n`;
+      
+      if (roomEnvironment.wall_material) md += `- **Murs:** ${roomEnvironment.wall_material}\n`;
+      if (roomEnvironment.floor_material) md += `- **Sol:** ${roomEnvironment.floor_material}\n`;
+      if (roomEnvironment.ceiling_material) md += `- **Plafond:** ${roomEnvironment.ceiling_material}\n`;
+      md += `- **Plancher technique:** ${roomEnvironment.has_raised_floor ? "Oui" : "Non"}\n`;
+      md += `- **Faux plafond technique:** ${roomEnvironment.has_false_ceiling ? "Oui" : "Non"}\n`;
+      if (roomEnvironment.brightness_level) md += `- **Luminosité:** ${roomEnvironment.brightness_level}\n`;
+    }
+    md += `\n`;
+
+    // Sonorisation
+    md += `## 🔊 Sonorisation\n\n`;
+    if (roomSonorization) {
+      if (roomSonorization.type_sonorisation) md += `- **Type:** ${roomSonorization.type_sonorisation}\n`;
+      
+      const diffusionTypes = [];
+      if (roomSonorization.diffusion_homogene) diffusionTypes.push("Homogène");
+      if (roomSonorization.diffusion_orientee) diffusionTypes.push("Orientée");
+      if (roomSonorization.diffusion_locale) diffusionTypes.push("Locale");
+      if (diffusionTypes.length > 0) md += `- **Diffusion:** ${diffusionTypes.join(", ")}\n`;
+      
+      if (roomSonorization.renforcement_voix) {
+        md += `- **Renforcement voix:** Oui\n`;
+        const micros = [];
+        if (roomSonorization.nb_micro_main_hf > 0) micros.push(`${roomSonorization.nb_micro_main_hf} main HF`);
+        if (roomSonorization.nb_micro_cravate_hf > 0) micros.push(`${roomSonorization.nb_micro_cravate_hf} cravate HF`);
+        if (roomSonorization.nb_micro_serre_tete_hf > 0) micros.push(`${roomSonorization.nb_micro_serre_tete_hf} serre-tête HF`);
+        if (roomSonorization.nb_micro_pupitre > 0) micros.push(`${roomSonorization.nb_micro_pupitre} pupitre`);
+        if (roomSonorization.nb_micro_plafond_beamforming > 0) micros.push(`${roomSonorization.nb_micro_plafond_beamforming} plafond beamforming`);
+        if (roomSonorization.nb_micro_table > 0) micros.push(`${roomSonorization.nb_micro_table} table`);
+        if (micros.length > 0) md += `  - Micros: ${micros.join(", ")}\n`;
+        if (roomSonorization.mixage_multiple) md += `  - Mixage multiple\n`;
+      } else {
+        md += `- **Renforcement voix:** Non\n`;
+      }
+      
+      md += `- **Retour sonore:** ${roomSonorization.retour_necessaire ? `Oui (${roomSonorization.retour_type || "N/A"})` : "Non"}\n`;
+      if (roomSonorization.acoustique_niveau) md += `- **Acoustique:** ${roomSonorization.acoustique_niveau}\n`;
+      
+      const traitements = [];
+      if (roomSonorization.dsp_necessaire) traitements.push("DSP");
+      if (roomSonorization.dante_souhaite) traitements.push("Dante");
+      if (roomSonorization.anti_larsen) traitements.push("Anti-larsen");
+      if (traitements.length > 0) md += `- **Traitement audio:** ${traitements.join(", ")}\n`;
+    }
+    md += `\n`;
+
+    // Visio / Streaming
+    md += `## 📹 Visio / Streaming\n\n`;
+    if (roomVisio) {
+      md += `- **Visioconférence:** ${roomVisio.visio_required ? "Oui" : "Non"}\n`;
+      if (roomVisio.visio_platform) md += `  - Plateforme: ${roomVisio.visio_platform}\n`;
+      if (roomVisio.camera_count > 0) {
+        md += `- **Caméras:** ${roomVisio.camera_count}`;
+        if (roomVisio.camera_types && roomVisio.camera_types.length > 0) {
+          md += ` (${roomVisio.camera_types.join(", ")})`;
+        }
+        md += `\n`;
+      }
+      if (roomVisio.mic_count > 0) {
+        md += `- **Micros visio:** ${roomVisio.mic_count}`;
+        if (roomVisio.mic_types && roomVisio.mic_types.length > 0) {
+          md += ` (${roomVisio.mic_types.join(", ")})`;
+        }
+        md += `\n`;
+      }
+      md += `- **Streaming:** ${roomVisio.streaming_enabled ? "Oui" : "Non"}\n`;
+      if (roomVisio.streaming_enabled && roomVisio.streaming_platform) {
+        md += `  - Plateforme: ${roomVisio.streaming_platform}\n`;
+      }
+    }
+    md += `\n`;
+
+    // Sources & Diffuseurs
+    md += `## 🖥️ Sources & Diffuseurs\n\n`;
+    if (sources && sources.length > 0) {
+      md += `### Sources\n\n`;
+      sources.forEach((s) => {
+        md += `- ${s.quantity || 1}× ${s.source_type}\n`;
+      });
+      md += `\n`;
+    }
+    if (displays && displays.length > 0) {
+      md += `### Diffuseurs\n\n`;
+      displays.forEach((d) => {
+        let sizeText = "";
+        if (d.display_type === "Vidéoprojecteur" && d.base_ecran_cm) {
+          const calculated = Math.round(Math.sqrt(Math.pow(d.base_ecran_cm, 2) + Math.pow(d.base_ecran_cm * 10 / 16, 2)) / 2.54 * 10) / 10;
+          sizeText = `${calculated}" (base: ${d.base_ecran_cm}cm)`;
+        } else if (d.size_inches) {
+          sizeText = `${d.size_inches}"`;
+        }
+        md += `- ${d.display_type}`;
+        if (sizeText) md += ` – ${sizeText}`;
+        if (d.position) md += ` – ${d.position}`;
+        md += `\n`;
+        if (d.display_type === "Vidéoprojecteur" && d.distance_projection_m) {
+          md += `  - Distance projection: ${d.distance_projection_m}m\n`;
+        }
+      });
+      md += `\n`;
+    }
+
+    // Connectique utilisateur
+    if (connectivityZones && connectivityZones.length > 0) {
+      md += `## 🔌 Connectique utilisateur\n\n`;
+      connectivityZones.forEach((zone) => {
+        md += `### ${zone.zone_name}\n\n`;
+        const parts = [];
+        if (zone.hdmi_count > 0) parts.push(`${zone.hdmi_count} HDMI`);
+        if (zone.usbc_count > 0) parts.push(`${zone.usbc_count} USB-C`);
+        if (zone.displayport_count > 0) parts.push(`${zone.displayport_count} DisplayPort`);
+        if (zone.rj45_count > 0) parts.push(`${zone.rj45_count} RJ45`);
+        if (zone.usba_count > 0) parts.push(`${zone.usba_count} USB-A`);
+        if (zone.power_230v_count > 0) parts.push(`${zone.power_230v_count} prises 230V`);
+        if (parts.length > 0) md += `- ${parts.join(", ")}\n`;
+        if (zone.distance_to_control_room_m) md += `- Distance vers régie: ${zone.distance_to_control_room_m}m\n`;
+        md += `\n`;
+      });
+    }
+
+    // Liaisons & Câbles
+    if (cables && cables.length > 0) {
+      md += `## 🔗 Liaisons & Câbles\n\n`;
+      cables.forEach((cable) => {
+        md += `- **${cable.point_a}** → **${cable.point_b}**\n`;
+        md += `  - ${cable.signal_type} – ${cable.distance_m}m`;
+        if (cable.distance_with_margin_m) md += ` (${cable.distance_with_margin_m}m avec marge)`;
+        md += `\n`;
+        if (cable.cable_recommendation) md += `  - Recommandation: ${cable.cable_recommendation}\n`;
+        md += `\n`;
+      });
+    }
+
+    // Analyse IA
+    if (room.resume_technique_ia || room.warnings_ia || room.critical_errors_ia) {
+      md += `## 🤖 Analyse IA\n\n`;
+      
+      if (room.critical_errors_ia && room.critical_errors_ia.length > 0) {
+        md += `### ⚠️ Erreurs critiques\n\n`;
+        room.critical_errors_ia.forEach((error: string) => {
+          md += `- ❌ ${error}\n`;
+        });
+        md += `\n`;
+      }
+      
+      if (room.warnings_ia && room.warnings_ia.length > 0) {
+        md += `### ⚡ Avertissements\n\n`;
+        room.warnings_ia.forEach((warning: string) => {
+          md += `- ⚠️ ${warning}\n`;
+        });
+        md += `\n`;
+      }
+      
+      if (room.audio_config_ia) {
+        md += `### 🎵 Configuration audio IA\n\n`;
+        const audioConfig = room.audio_config_ia as any;
+        if (audioConfig.type_sonorisation) md += `- Type: ${audioConfig.type_sonorisation}\n`;
+        if (audioConfig.ambiance?.active) md += `- Ambiance: ${audioConfig.ambiance.description}\n`;
+        if (audioConfig.puissance?.active) md += `- Puissance: ${audioConfig.puissance.niveau}\n`;
+        md += `\n`;
+      }
+    }
+
+    return md;
+  };
+
+  const downloadNotionStyleReport = () => {
+    if (!notionStyleReport) {
+      toast.error("Le compte rendu n'est pas encore généré");
+      return;
+    }
+    const blob = new Blob([notionStyleReport], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Compte-rendu-${room?.name || "salle"}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Compte rendu téléchargé");
+  };
+
   const downloadTextFile = () => {
     if (!exportText) {
       toast.error("Générez d'abord le texte structuré");
@@ -469,6 +689,14 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     },
   });
 
+  // Générer automatiquement le compte rendu structuré au chargement
+  useEffect(() => {
+    if (room && sources && displays && roomUsage && roomEnvironment && roomVisio && roomSonorization && connectivityZones && cables) {
+      const report = generateNotionStyleReport();
+      setNotionStyleReport(report);
+    }
+  }, [room, sources, displays, roomUsage, roomEnvironment, roomVisio, roomSonorization, connectivityZones, cables]);
+
   return (
     <>
       {showAiResults && aiAnalysisData && (
@@ -480,6 +708,28 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       )}
 
       <div className="space-y-4">
+        {/* Compte rendu structuré style Notion */}
+        <Card className="glass neon-border-yellow p-6">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="neon-yellow">📋 Compte rendu structuré</CardTitle>
+            <Button
+              onClick={downloadNotionStyleReport}
+              variant="secondary"
+              size="sm"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Télécharger .md
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="prose prose-invert max-w-none">
+              <pre className="whitespace-pre-wrap bg-background/30 p-4 rounded-lg text-sm border border-border overflow-auto max-h-96">
+{notionStyleReport}
+              </pre>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="glass neon-border-yellow p-6">
           <CardHeader>
             <CardTitle className="neon-yellow">Analyse IA</CardTitle>
