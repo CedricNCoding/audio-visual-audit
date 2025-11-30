@@ -22,6 +22,7 @@ export const ConnectivityManager = ({ roomId }: ConnectivityManagerProps) => {
     rj45_count: 0,
     usba_count: 0,
     power_230v_count: 0,
+    distance_to_control_room_m: 0,
   });
 
   const { data: zones } = useQuery({
@@ -45,7 +46,7 @@ export const ConnectivityManager = ({ roomId }: ConnectivityManagerProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["connectivity_zones", roomId] });
-      setNewZone({ zone_name: "", hdmi_count: 0, usbc_count: 0, displayport_count: 0, rj45_count: 0, usba_count: 0, power_230v_count: 0 });
+      setNewZone({ zone_name: "", hdmi_count: 0, usbc_count: 0, displayport_count: 0, rj45_count: 0, usba_count: 0, power_230v_count: 0, distance_to_control_room_m: 0 });
       toast.success("Zone ajoutée");
     },
   });
@@ -82,6 +83,10 @@ export const ConnectivityManager = ({ roomId }: ConnectivityManagerProps) => {
             <Label className="text-xs">RJ45</Label>
             <Input type="number" min="0" value={newZone.rj45_count} onChange={(e) => setNewZone({ ...newZone, rj45_count: parseInt(e.target.value) || 0 })} />
           </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Distance vers régie (m)</Label>
+            <Input type="number" min="0" step="0.1" value={newZone.distance_to_control_room_m || ""} onChange={(e) => setNewZone({ ...newZone, distance_to_control_room_m: parseFloat(e.target.value) || 0 })} />
+          </div>
         </div>
         <Button onClick={() => addZone.mutate()} disabled={!newZone.zone_name} className="w-full">
           <Plus className="h-4 w-4 mr-2" /> Ajouter zone
@@ -96,6 +101,7 @@ export const ConnectivityManager = ({ roomId }: ConnectivityManagerProps) => {
                 {zone.hdmi_count > 0 && <p>HDMI: {zone.hdmi_count}</p>}
                 {zone.usbc_count > 0 && <p>USB-C: {zone.usbc_count}</p>}
                 {zone.rj45_count > 0 && <p>RJ45: {zone.rj45_count}</p>}
+                {zone.distance_to_control_room_m > 0 && <p className="text-primary">Distance vers régie: {zone.distance_to_control_room_m}m</p>}
               </div>
             </div>
             <Button variant="ghost" size="icon" onClick={() => deleteZone.mutate(zone.id)}>

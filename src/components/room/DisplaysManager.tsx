@@ -26,6 +26,16 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
     base_ecran_cm: 0,
   });
 
+  // Calculate size in inches from base_ecran_cm for vidéoprojecteur (16:10 ratio)
+  const calculateInchesFromBase = (baseCm: number): number => {
+    if (!baseCm || baseCm <= 0) return 0;
+    const base = baseCm;
+    const hauteur = base * 10 / 16;
+    const diagonaleCm = Math.sqrt(base * base + hauteur * hauteur);
+    const tailleInches = diagonaleCm / 2.54;
+    return Math.round(tailleInches * 10) / 10; // Round to 1 decimal
+  };
+
   const { data: displays } = useQuery({
     queryKey: ["displays", roomId],
     queryFn: async () => {
@@ -40,9 +50,17 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
 
   const addDisplay = useMutation({
     mutationFn: async () => {
+      // Auto-calculate size_inches for vidéoprojecteur if not provided
+      let displayData = { ...newDisplay };
+      if (displayData.display_type === "Vidéoprojecteur" && displayData.base_ecran_cm > 0) {
+        if (!displayData.size_inches || displayData.size_inches === 0) {
+          displayData.size_inches = calculateInchesFromBase(displayData.base_ecran_cm);
+        }
+      }
+      
       const { error } = await supabase
         .from("displays")
-        .insert([{ ...newDisplay, room_id: roomId }]);
+        .insert([{ ...displayData, room_id: roomId }]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -128,20 +146,35 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
       )}
       
       <div className="space-y-2">
-        {displays?.map((display) => (
-          <Card key={display.id} className="p-4 flex justify-between items-center glass">
-            <div>
-              <p className="font-medium">{display.display_type} {display.size_inches}"</p>
-              <p className="text-sm text-muted-foreground">{display.position}</p>
-              {display.display_type === "Vidéoprojecteur" && display.distance_projection_m && (
-                <p className="text-xs text-primary">Distance: {display.distance_projection_m}m • Base: {display.base_ecran_cm}cm</p>
-              )}
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => deleteDisplay.mutate(display.id)}>
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          </Card>
-        ))}
+        {displays?.map((display) => {
+          const calculatedInches = display.display_type === "Vidéoprojecteur" && display.base_ecran_cm 
+            ? calculateInchesFromBase(display.base_ecran_cm) 
+            : null;
+          
+          return (
+            <Card key={display.id} className="p-4 flex justify-between items-center glass">
+              <div>
+                <p className="font-medium">
+                  {display.display_type} {display.size_inches}"
+                  {calculatedInches && calculatedInches !== display.size_inches && (
+                    <span className="text-xs text-muted-foreground ml-2">(calculé: {calculatedInches}")</span>
+                  )}
+                </p>
+                <p className="text-sm text-muted-foreground">{display.position}</p>
+                {display.display_type === "Vidéoprojecteur" && (display.distance_projection_m || display.base_ecran_cm) && (
+                  <p className="text-xs text-primary">
+                    {display.distance_projection_m && `Distance: ${display.distance_projection_m}m`}
+                    {display.distance_projection_m && display.base_ecran_cm && " • "}
+                    {display.base_ecran_cm && `Base: ${display.base_ecran_cm}cm`}
+                  </p>
+                )}
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => deleteDisplay.mutate(display.id)}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
