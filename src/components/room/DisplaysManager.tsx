@@ -27,6 +27,41 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
     viewer_distance_m: 0,
   });
 
+  // Récupérer la typologie de la salle pour le calcul AVIXA
+  const { data: room } = useQuery({
+    queryKey: ["room", roomId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rooms")
+        .select("typology")
+        .eq("id", roomId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Multiplicateur AVIXA selon la typologie
+  const getAvixaMultiplier = (typology: string | null | undefined): number => {
+    if (!typology) return 15;
+    const typo = typology.toLowerCase();
+    if (typo.includes("huddle")) return 10;
+    if (typo.includes("direction") || typo.includes("conseil")) return 17;
+    if (typo.includes("formation")) return 18;
+    if (typo.includes("auditorium") || typo.includes("grand")) return 20;
+    return 15; // Salle de réunion standard par défaut
+  };
+
+  const getTypologyLabel = (typology: string | null | undefined): string => {
+    if (!typology) return "salle de réunion standard";
+    const typo = typology.toLowerCase();
+    if (typo.includes("huddle")) return "huddle";
+    if (typo.includes("direction") || typo.includes("conseil")) return "salle de direction / conseil";
+    if (typo.includes("formation")) return "salle de formation";
+    if (typo.includes("auditorium") || typo.includes("grand")) return "auditorium / grand espace";
+    return "salle de réunion standard";
+  };
+
   // Calculate size in inches from base_ecran_cm for vidéoprojecteur (16:10 ratio)
   const calculateInchesFromBase = (baseCm: number): number => {
     if (!baseCm || baseCm <= 0) return 0;
@@ -37,10 +72,11 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
     return Math.round(tailleInches * 10) / 10; // Round to 1 decimal
   };
 
-  // Calculate recommended size based on viewer distance
+  // Calculate recommended size based on viewer distance and room typology (AVIXA adapted)
   const calculateRecommendedSize = (distanceM: number): number => {
     if (!distanceM || distanceM <= 0) return 0;
-    return Math.round(distanceM * 20);
+    const multiplier = getAvixaMultiplier(room?.typology);
+    return Math.round(distanceM * multiplier);
   };
 
   const recommendedSize = calculateRecommendedSize(newDisplay.viewer_distance_m);
@@ -187,7 +223,7 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
               <div className="text-sm text-primary">
                 <strong>💡 Suggestion de taille (indicative)</strong>
                 <p className="text-muted-foreground mt-1">
-                  Pour un recul de {newDisplay.viewer_distance_m} m, une diagonale d'environ <strong>{recommendedSize} pouces</strong> est recommandée pour un usage confort.
+                  Pour une distance spectateur de <strong>{newDisplay.viewer_distance_m} m</strong> en <strong>{getTypologyLabel(room?.typology)}</strong>, une diagonale d'environ <strong>{recommendedSize} pouces</strong> est recommandée.
                 </p>
               </div>
               
@@ -198,7 +234,7 @@ export const DisplaysManager = ({ roomId }: DisplaysManagerProps) => {
                       ? "text-green-400" 
                       : "text-yellow-400"
                   }>
-                    {getSizeComment()}
+                    {getSizeComment() === "Taille d'écran cohérente" ? "✓ " : "⚠️ "}{getSizeComment()}
                   </span>
                 </div>
               )}
