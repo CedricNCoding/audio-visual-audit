@@ -803,9 +803,10 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
             point_a: link.from,
             point_b: link.to,
             signal_type: link.signal_type,
+            transport: link.transport,
             distance_m: distance,
             distance_with_margin_m: distance * 1.2,
-            cable_recommendation: link.transport,
+            commentaire: link.comment,
           });
         }
       }
@@ -820,9 +821,10 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
             point_a: link.from,
             point_b: link.to,
             signal_type: link.signal_type,
+            transport: link.transport,
             distance_m: distance,
             distance_with_margin_m: distance * 1.2,
-            cable_recommendation: link.transport,
+            commentaire: link.comment,
           });
         }
       }
