@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 const SIGNAL_TYPES = ["HDMI", "USB", "DisplayPort", "RJ45", "Audio"];
@@ -56,8 +56,91 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
     },
   });
 
+  const { data: sources } = useQuery({
+    queryKey: ["sources", roomId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sources").select("*").eq("room_id", roomId);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: displays } = useQuery({
+    queryKey: ["displays", roomId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("displays").select("*").eq("room_id", roomId);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const generateBasicCables = useMutation({
+    mutationFn: async () => {
+      if (!sources?.length || !displays?.length) {
+        throw new Error("Au moins une source et un diffuseur sont nécessaires");
+      }
+
+      const cablesToCreate = [];
+      
+      // First display as main display
+      const mainDisplay = displays[0];
+      
+      // Create connection from first user source (laptop/PC) to main display
+      const userSource = sources.find(s => 
+        s.source_type.toLowerCase().includes("pc") || 
+        s.source_type.toLowerCase().includes("laptop") ||
+        s.source_type.toLowerCase().includes("ordinateur")
+      ) || sources[0];
+      
+      cablesToCreate.push({
+        room_id: roomId,
+        point_a: userSource.source_type,
+        point_b: mainDisplay.display_type,
+        signal_type: "HDMI",
+        distance_m: 5,
+      });
+
+      // Create connection from control room source to main display if exists
+      const controlRoomSource = sources.find(s => 
+        s.source_type.toLowerCase().includes("régie") ||
+        s.source_type.toLowerCase().includes("regie")
+      );
+      
+      if (controlRoomSource) {
+        cablesToCreate.push({
+          room_id: roomId,
+          point_a: "Régie",
+          point_b: mainDisplay.display_type,
+          signal_type: "HDMI",
+          distance_m: 10,
+        });
+      }
+
+      const { error } = await supabase.from("cables").insert(cablesToCreate);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cables", roomId] });
+      toast.success("Liaisons de base générées");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button 
+          onClick={() => generateBasicCables.mutate()}
+          variant="outline"
+          className="gap-2"
+          disabled={!sources?.length || !displays?.length}
+        >
+          <Wand2 className="h-4 w-4" />
+          Générer les liaisons de base
+        </Button>
+      </div>
       <div className="grid gap-4 md:grid-cols-5">
         <Input
           placeholder="Point A"

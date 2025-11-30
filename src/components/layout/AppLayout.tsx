@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Home } from "lucide-react";
+import { LogOut, Home, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 interface AppLayoutProps {
@@ -34,14 +34,24 @@ export const AppLayout = ({ children, title }: AppLayoutProps) => {
             </Button>
             {title && <h1 className="text-xl font-semibold">{title}</h1>}
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleLogout}
-            className="rounded-full"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/settings")}
+              className="rounded-full"
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="rounded-full"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
       <main className="container mx-auto p-4 md:p-6 lg:p-8">
