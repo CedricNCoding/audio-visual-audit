@@ -321,16 +321,40 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
         </Button>
       </div>
       <div className="grid gap-4 md:grid-cols-6">
-        <Input
-          placeholder="Point A"
+        <Select
           value={newCable.point_a}
-          onChange={(e) => setNewCable({ ...newCable, point_a: e.target.value })}
-        />
-        <Input
-          placeholder="Point B"
+          onValueChange={(value) => setNewCable({ ...newCable, point_a: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Point A" />
+          </SelectTrigger>
+          <SelectContent className="bg-background z-50">
+            <SelectItem value="Matrice">Matrice</SelectItem>
+            <SelectItem value="Sélecteur">Sélecteur</SelectItem>
+            {sources?.map((source) => (
+              <SelectItem key={source.id} value={source.source_type}>
+                {source.source_type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
           value={newCable.point_b}
-          onChange={(e) => setNewCable({ ...newCable, point_b: e.target.value })}
-        />
+          onValueChange={(value) => setNewCable({ ...newCable, point_b: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Point B" />
+          </SelectTrigger>
+          <SelectContent className="bg-background z-50">
+            <SelectItem value="Matrice">Matrice</SelectItem>
+            <SelectItem value="Sélecteur">Sélecteur</SelectItem>
+            {displays?.map((display) => (
+              <SelectItem key={display.id} value={display.display_type}>
+                {display.display_type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select
           value={newCable.signal_type}
           onValueChange={(value) => setNewCable({ ...newCable, signal_type: value })}
@@ -338,7 +362,7 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
           <SelectTrigger>
             <SelectValue placeholder="Type signal" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-background z-50">
             {SIGNAL_TYPES.map((type) => (
               <SelectItem key={type} value={type}>
                 {type}
@@ -353,7 +377,7 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
           <SelectTrigger>
             <SelectValue placeholder="Transport" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-background z-50">
             {TRANSPORT_TYPES.map((type) => (
               <SelectItem key={type} value={type}>
                 {type}
@@ -400,7 +424,7 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background z-50">
                   {SIGNAL_TYPES.map((type) => (
                     <SelectItem key={type} value={type}>
                       {type}
@@ -427,7 +451,7 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
                 <SelectTrigger>
                   <SelectValue placeholder="Choisir..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background z-50">
                   {TRANSPORT_TYPES.map((type) => (
                     <SelectItem key={type} value={type}>
                       {type}
