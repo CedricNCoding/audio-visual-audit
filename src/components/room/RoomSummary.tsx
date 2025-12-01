@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { AIAnalysisResults } from "@/components/ai/AIAnalysisResults";
 import { useRJ45Calculator } from "@/hooks/useRJ45Calculator";
 import { useTechnicalValidation } from "@/hooks/useTechnicalValidation";
+import { RoomPlanViewer } from "./RoomPlanViewer";
 
 interface RoomSummaryProps {
   roomId: string;
@@ -167,6 +168,18 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("connectivity_zones")
+        .select("*")
+        .eq("room_id", roomId);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: elementsSalle } = useQuery({
+    queryKey: ["elements_salle", roomId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("elements_salle")
         .select("*")
         .eq("room_id", roomId);
       if (error) throw error;
@@ -432,9 +445,33 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       text += `\n`;
     }
 
-    // Section 10 – Synthèse
+    // Section 10 – Implantation – Plan de salle
+    if (elementsSalle && elementsSalle.length > 0) {
+      text += `┌─────────────────────────────────────────────────────┐\n`;
+      text += `│ Section 10 – IMPLANTATION – PLAN DE SALLE           │\n`;
+      text += `└─────────────────────────────────────────────────────┘\n`;
+      
+      const elementsByType = elementsSalle.reduce((acc: any, el: any) => {
+        if (!acc[el.type_element]) acc[el.type_element] = [];
+        acc[el.type_element].push(el);
+        return acc;
+      }, {});
+
+      Object.entries(elementsByType).forEach(([type, elements]: [string, any]) => {
+        text += `• ${type}s : ${elements.length}\n`;
+        elements.forEach((el: any, idx: number) => {
+          const label = el.label || `${type} #${idx + 1}`;
+          text += `  - ${label} à position (~${Math.round(el.position_x)}%, ~${Math.round(el.position_y)}%)`;
+          if (el.commentaire) text += ` – ${el.commentaire}`;
+          text += `\n`;
+        });
+      });
+      text += `\n`;
+    }
+
+    // Section 11 – Synthèse
     text += `┌─────────────────────────────────────────────────────┐\n`;
-    text += `│ Section 10 – SYNTHÈSE                               │\n`;
+    text += `│ Section 11 – SYNTHÈSE                               │\n`;
     text += `└─────────────────────────────────────────────────────┘\n`;
     
     // Calculate recommendation
@@ -916,6 +953,13 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
 {notionStyleReport}
               </pre>
             </div>
+
+            {/* Plan d'implantation avec éléments placés */}
+            <RoomPlanViewer
+              roomId={roomId}
+              roomLength={roomEnvironment?.length_m}
+              roomWidth={roomEnvironment?.width_m}
+            />
 
             {/* Mini-plan de la salle */}
             {roomEnvironment && roomEnvironment.length_m && roomEnvironment.width_m && (

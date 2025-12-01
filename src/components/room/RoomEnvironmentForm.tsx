@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { RoomSchematic } from "./RoomSchematic";
+import { RoomPlanEditor } from "./RoomPlanEditor";
 
 interface RoomEnvironmentData {
   length_m?: number;
@@ -27,9 +28,10 @@ interface RoomEnvironmentData {
 interface RoomEnvironmentFormProps {
   data: RoomEnvironmentData;
   onChange: (data: RoomEnvironmentData) => void;
+  roomId: string;
 }
 
-export const RoomEnvironmentForm = ({ data, onChange }: RoomEnvironmentFormProps) => {
+export const RoomEnvironmentForm = ({ data, onChange, roomId }: RoomEnvironmentFormProps) => {
   const updateField = (field: keyof RoomEnvironmentData, value: any) => {
     onChange({ ...data, [field]: value });
   };
@@ -269,6 +271,15 @@ export const RoomEnvironmentForm = ({ data, onChange }: RoomEnvironmentFormProps
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* Plan d'implantation des éléments */}
+      <div className="glass neon-border-blue p-4 rounded-lg">
+        <RoomPlanEditor
+          roomId={roomId}
+          roomLength={data.length_m}
+          roomWidth={data.width_m}
+        />
       </div>
     </div>
   );
