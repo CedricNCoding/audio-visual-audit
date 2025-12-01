@@ -113,6 +113,18 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
     },
   });
 
+  const { data: connectivityZones } = useQuery({
+    queryKey: ["connectivity_zones", roomId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("connectivity_zones")
+        .select("*")
+        .eq("room_id", roomId);
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const generateBasicCables = useMutation({
     mutationFn: async () => {
       if (!sources?.length || !displays?.length) {
@@ -134,6 +146,90 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
         !s.source_type.toLowerCase().includes("audio") &&
         !s.source_type.toLowerCase().includes("micro")
       );
+
+      // ========== LOGIQUE SOURCES EN SALLE (CONNECTIVITY ZONES) ==========
+      if (connectivityZones && connectivityZones.length > 0) {
+        connectivityZones.forEach(zone => {
+          const zoneSourceCount = (zone.hdmi_count || 0) + (zone.usbc_count || 0) + (zone.displayport_count || 0);
+          
+          if (zoneSourceCount > 0) {
+            const zoneName = zone.zone_name;
+            
+            if (zoneSourceCount > 1) {
+              // Plusieurs sources dans la zone -> Sélecteur local
+              const selectorName = `Sélecteur local ${zoneName}`;
+              
+              // Liaisons sources zone -> sélecteur local
+              if (zone.hdmi_count && zone.hdmi_count > 0) {
+                for (let i = 0; i < zone.hdmi_count; i++) {
+                  cablesToCreate.push({
+                    room_id: roomId,
+                    point_a: `HDMI ${zoneName} ${i + 1}`,
+                    point_b: selectorName,
+                    signal_type: "Vidéo HDMI",
+                    transport: "HDMI direct",
+                    distance_m: 2,
+                    commentaire: `Source en salle vers sélecteur local`,
+                  });
+                }
+              }
+              if (zone.usbc_count && zone.usbc_count > 0) {
+                for (let i = 0; i < zone.usbc_count; i++) {
+                  cablesToCreate.push({
+                    room_id: roomId,
+                    point_a: `USB-C ${zoneName} ${i + 1}`,
+                    point_b: selectorName,
+                    signal_type: "Vidéo HDMI",
+                    transport: "HDMI direct",
+                    distance_m: 2,
+                    commentaire: `Source en salle vers sélecteur local`,
+                  });
+                }
+              }
+              if (zone.displayport_count && zone.displayport_count > 0) {
+                for (let i = 0; i < zone.displayport_count; i++) {
+                  cablesToCreate.push({
+                    room_id: roomId,
+                    point_a: `DisplayPort ${zoneName} ${i + 1}`,
+                    point_b: selectorName,
+                    signal_type: "Vidéo HDMI",
+                    transport: "HDMI direct",
+                    distance_m: 2,
+                    commentaire: `Source en salle vers sélecteur local`,
+                  });
+                }
+              }
+              
+              // Liaison sélecteur local -> matrice ou diffuseur
+              if (displays.length > 1 || videoSources.length > 0) {
+                cablesToCreate.push({
+                  room_id: roomId,
+                  point_a: selectorName,
+                  point_b: displays.length > 1 || videoSources.length > 1 ? "Matrice vidéo" : displays[0]?.display_type || "Diffuseur",
+                  signal_type: "Vidéo HDMI",
+                  transport: zone.distance_to_control_room_m && zone.distance_to_control_room_m > 5 ? "HDBaseT" : "HDMI direct",
+                  distance_m: zone.distance_to_control_room_m || 10,
+                  commentaire: `Liaison depuis sélecteur local ${zoneName}`,
+                });
+              }
+            } else {
+              // Une seule source dans la zone -> Direct
+              const sourceType = zone.hdmi_count ? "HDMI" : zone.usbc_count ? "USB-C" : "DisplayPort";
+              const sourceName = `${sourceType} ${zoneName}`;
+              
+              cablesToCreate.push({
+                room_id: roomId,
+                point_a: sourceName,
+                point_b: displays.length > 1 || videoSources.length > 0 ? "Matrice vidéo" : displays[0]?.display_type || "Diffuseur",
+                signal_type: "Vidéo HDMI",
+                transport: zone.distance_to_control_room_m && zone.distance_to_control_room_m > 5 ? "HDBaseT" : "HDMI direct",
+                distance_m: zone.distance_to_control_room_m || 10,
+                commentaire: `Liaison directe depuis source en salle`,
+              });
+            }
+          }
+        });
+      }
       
       if (videoSources.length === 1 && displays.length === 1) {
         // Cas 1: 1 source, 1 diffuseur -> Direct
