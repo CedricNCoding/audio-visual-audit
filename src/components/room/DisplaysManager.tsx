@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-const DISPLAY_TYPES = ["Moniteur", "Vidéoprojecteur", "LED", "Mur d'images", "Répétiteur"];
+const DISPLAY_TYPES = ["Moniteur", "Vidéoprojecteur", "LED", "Mur d'images", "Répétiteur", "Écran interactif", "Écran de retour", "Écran de rappel"];
 const POSITIONS = ["Face", "Latéral", "Fond"];
 
 interface DisplaysManagerProps {
