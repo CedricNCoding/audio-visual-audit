@@ -48,8 +48,8 @@ interface AIAnalysisData {
   audio_links: AILink[];
   audio_config: AIAudioConfig;
   user_connectivity: AIUserConnectivity;
-  warnings: string[];
-  critical_errors: string[];
+  warnings: (string | { id?: string; message: string })[];
+  critical_errors: (string | { id?: string; message: string })[];
   debug: string[];
   summary_text: string;
 }
@@ -142,7 +142,7 @@ export const AIAnalysisResults = ({
                   <ul className="list-disc list-inside space-y-1">
                     {data.critical_errors.map((error, i) => (
                       <li key={i} className="text-destructive">
-                        {error}
+                        {typeof error === 'string' ? error : error.message || JSON.stringify(error)}
                       </li>
                     ))}
                   </ul>
@@ -163,7 +163,7 @@ export const AIAnalysisResults = ({
                   <ul className="list-disc list-inside space-y-1">
                     {data.warnings.map((warning, i) => (
                       <li key={i} className="text-yellow-500">
-                        {warning}
+                        {typeof warning === 'string' ? warning : warning.message || JSON.stringify(warning)}
                       </li>
                     ))}
                   </ul>
