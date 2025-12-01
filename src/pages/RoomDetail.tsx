@@ -422,6 +422,7 @@ const RoomDetail = () => {
                 <RoomEnvironmentForm
                   data={environmentData}
                   onChange={setEnvironmentData}
+                  roomId={roomId}
                 />
                 <StepNavigation
                   currentStep={currentStepIndex + 1}

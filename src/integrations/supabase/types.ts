@@ -227,6 +227,42 @@ export type Database = {
           },
         ]
       }
+      elements_salle: {
+        Row: {
+          commentaire: string | null
+          created_at: string
+          id: string
+          label: string | null
+          position_x: number
+          position_y: number
+          room_id: string
+          type_element: string
+          updated_at: string
+        }
+        Insert: {
+          commentaire?: string | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          position_x: number
+          position_y: number
+          room_id: string
+          type_element: string
+          updated_at?: string
+        }
+        Update: {
+          commentaire?: string | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          position_x?: number
+          position_y?: number
+          room_id?: string
+          type_element?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       microphone_types: {
         Row: {
           created_at: string | null
