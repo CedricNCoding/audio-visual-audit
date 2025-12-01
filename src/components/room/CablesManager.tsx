@@ -53,7 +53,7 @@ export const CablesManager = ({ roomId }: CablesManagerProps) => {
         .from("cables")
         .select("*")
         .eq("room_id", roomId)
-        .order("created_at", { ascending: true });
+        .order("id", { ascending: true });
       if (error) throw error;
       return data;
     },
