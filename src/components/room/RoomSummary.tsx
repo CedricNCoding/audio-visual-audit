@@ -739,16 +739,18 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       
       if (room.critical_errors_ia && room.critical_errors_ia.length > 0) {
         md += `### ⚠️ Erreurs critiques\n\n`;
-        room.critical_errors_ia.forEach((error: string) => {
-          md += `- ❌ ${error}\n`;
+        room.critical_errors_ia.forEach((error: any) => {
+          const errorText = typeof error === 'string' ? error : error.message || JSON.stringify(error);
+          md += `- ❌ ${errorText}\n`;
         });
         md += `\n`;
       }
       
       if (room.warnings_ia && room.warnings_ia.length > 0) {
         md += `### ⚡ Avertissements\n\n`;
-        room.warnings_ia.forEach((warning: string) => {
-          md += `- ⚠️ ${warning}\n`;
+        room.warnings_ia.forEach((warning: any) => {
+          const warningText = typeof warning === 'string' ? warning : warning.message || JSON.stringify(warning);
+          md += `- ⚠️ ${warningText}\n`;
         });
         md += `\n`;
       }
@@ -1272,8 +1274,10 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
                   Erreurs critiques détectées par l'IA
                 </h3>
                 <ul className="list-disc list-inside space-y-1 text-sm">
-                  {room.critical_errors_ia.map((error: string, i: number) => (
-                    <li key={i} className="text-destructive">{error}</li>
+                  {room.critical_errors_ia.map((error: any, i: number) => (
+                    <li key={i} className="text-destructive">
+                      {typeof error === 'string' ? error : error.message || JSON.stringify(error)}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -1284,8 +1288,10 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
               <div className="border-yellow-500/50 bg-yellow-500/10 p-4 rounded-lg">
                 <h3 className="font-semibold text-yellow-500 mb-2">Avertissements</h3>
                 <ul className="list-disc list-inside space-y-1 text-sm">
-                  {room.warnings_ia.map((warning: string, i: number) => (
-                    <li key={i} className="text-yellow-500">{warning}</li>
+                  {room.warnings_ia.map((warning: any, i: number) => (
+                    <li key={i} className="text-yellow-500">
+                      {typeof warning === 'string' ? warning : warning.message || JSON.stringify(warning)}
+                    </li>
                   ))}
                 </ul>
               </div>
