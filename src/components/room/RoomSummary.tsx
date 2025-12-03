@@ -832,78 +832,104 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     mutationFn: async (selections: any) => {
       const { selectedLinks, selectedAudioLinks, applyAudioConfig, applyConnectivity } = selections;
 
+      let cablesCreated = 0;
+
       // Create selected video/network links
-      for (const linkId of selectedLinks) {
-        const link = aiAnalysisData.links.find((l: any) => l.id === linkId);
-        if (link) {
-          const distance = 10; // Default distance, could be calculated
-          await supabase.from("cables").insert({
-            room_id: roomId,
-            point_a: link.from,
-            point_b: link.to,
-            signal_type: link.signal_type,
-            transport: link.transport,
-            distance_m: distance,
-            distance_with_margin_m: distance * 1.2,
-            commentaire: link.comment,
-          });
+      if (selectedLinks && selectedLinks.length > 0 && aiAnalysisData?.links) {
+        for (const linkId of selectedLinks) {
+          const link = aiAnalysisData.links.find((l: any) => l.id === linkId);
+          if (link) {
+            const distance = 10; // Default distance, could be calculated
+            const { error } = await supabase.from("cables").insert({
+              room_id: roomId,
+              point_a: link.from,
+              point_b: link.to,
+              signal_type: link.signal_type,
+              transport: link.transport || "HDMI",
+              distance_m: distance,
+              distance_with_margin_m: distance * 1.2,
+              commentaire: link.comment,
+            });
+            if (error) {
+              console.error("Error creating cable:", error);
+              throw error;
+            }
+            cablesCreated++;
+          }
         }
       }
 
       // Create selected audio links
-      for (const linkId of selectedAudioLinks) {
-        const link = aiAnalysisData.audio_links.find((l: any) => l.id === linkId);
-        if (link) {
-          const distance = 10; // Default distance
-          await supabase.from("cables").insert({
-            room_id: roomId,
-            point_a: link.from,
-            point_b: link.to,
-            signal_type: link.signal_type,
-            transport: link.transport,
-            distance_m: distance,
-            distance_with_margin_m: distance * 1.2,
-            commentaire: link.comment,
-          });
+      if (selectedAudioLinks && selectedAudioLinks.length > 0 && aiAnalysisData?.audio_links) {
+        for (const linkId of selectedAudioLinks) {
+          const link = aiAnalysisData.audio_links.find((l: any) => l.id === linkId);
+          if (link) {
+            const distance = 10; // Default distance
+            const { error } = await supabase.from("cables").insert({
+              room_id: roomId,
+              point_a: link.from,
+              point_b: link.to,
+              signal_type: link.signal_type,
+              transport: link.transport || "XLR",
+              distance_m: distance,
+              distance_with_margin_m: distance * 1.2,
+              commentaire: link.comment,
+            });
+            if (error) {
+              console.error("Error creating audio cable:", error);
+              throw error;
+            }
+            cablesCreated++;
+          }
         }
       }
 
       // Save AI config and results to room
       const updateData: any = {
-        warnings_ia: aiAnalysisData.warnings,
-        critical_errors_ia: aiAnalysisData.critical_errors,
-        debug_ia: aiAnalysisData.debug,
-        resume_technique_ia: aiAnalysisData.summary_text,
+        warnings_ia: aiAnalysisData?.warnings || [],
+        critical_errors_ia: aiAnalysisData?.critical_errors || [],
+        debug_ia: aiAnalysisData?.debug || [],
+        resume_technique_ia: aiAnalysisData?.summary_text || "",
       };
 
-      if (applyAudioConfig) {
+      if (applyAudioConfig && aiAnalysisData?.audio_config) {
         updateData.audio_config_ia = aiAnalysisData.audio_config;
       }
 
-      await supabase.from("rooms").update(updateData).eq("id", roomId);
+      const { error: roomError } = await supabase.from("rooms").update(updateData).eq("id", roomId);
+      if (roomError) {
+        console.error("Error updating room:", roomError);
+        throw roomError;
+      }
 
       // Apply connectivity if selected
-      if (applyConnectivity && aiAnalysisData.user_connectivity?.table) {
+      if (applyConnectivity && aiAnalysisData?.user_connectivity?.table) {
         const conn = aiAnalysisData.user_connectivity.table;
-        await supabase.from("connectivity_zones").upsert({
+        const { error: connError } = await supabase.from("connectivity_zones").upsert({
           room_id: roomId,
           zone_name: "Table (IA)",
-          hdmi_count: conn.hdmi,
-          usbc_count: conn.usbc,
-          rj45_count: conn.rj45,
+          hdmi_count: conn.hdmi || 0,
+          usbc_count: conn.usbc || 0,
+          rj45_count: conn.rj45 || 0,
         });
+        if (connError) {
+          console.error("Error updating connectivity:", connError);
+          throw connError;
+        }
       }
+
+      return { cablesCreated };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["cables", roomId] });
       queryClient.invalidateQueries({ queryKey: ["connectivity_zones", roomId] });
       queryClient.invalidateQueries({ queryKey: ["room", roomId] });
       setShowAiResults(false);
-      toast.success("Recommandations IA appliquées");
+      toast.success(`Recommandations IA appliquées (${data.cablesCreated} liaisons créées)`);
     },
     onError: (error: any) => {
       console.error("Error applying AI selections:", error);
-      toast.error("Erreur lors de l'application des recommandations");
+      toast.error("Erreur lors de l'application des recommandations: " + (error.message || "Erreur inconnue"));
     },
   });
 
