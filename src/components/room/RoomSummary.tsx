@@ -1351,16 +1351,81 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
                 value={room.resume_technique_ia}
                 readOnly
               />
-              <Button
-                onClick={() => {
-                  navigator.clipboard.writeText(room.resume_technique_ia);
-                  toast.success("Résumé IA copié");
-                }}
-                variant="secondary"
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                Copier le résumé IA
-              </Button>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(room.resume_technique_ia);
+                    toast.success("Résumé IA copié");
+                  }}
+                  variant="secondary"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copier le résumé IA
+                </Button>
+                <Button
+                  onClick={() => {
+                    // Generate full AI report
+                    let aiReport = `# Analyse IA - ${room.name}\n`;
+                    aiReport += `Projet: ${room.projects?.client_name || "N/A"}\n`;
+                    aiReport += `Date: ${new Date().toLocaleDateString("fr-FR")}\n\n`;
+                    
+                    if (room.critical_errors_ia && room.critical_errors_ia.length > 0) {
+                      aiReport += `## ⚠️ ERREURS CRITIQUES\n\n`;
+                      room.critical_errors_ia.forEach((error: any) => {
+                        const errorText = typeof error === "string" ? error : error.message || JSON.stringify(error);
+                        aiReport += `- ❌ ${errorText}\n`;
+                      });
+                      aiReport += `\n`;
+                    }
+                    
+                    if (room.warnings_ia && room.warnings_ia.length > 0) {
+                      aiReport += `## ⚡ AVERTISSEMENTS\n\n`;
+                      room.warnings_ia.forEach((warning: any) => {
+                        const warningText = typeof warning === "string" ? warning : warning.message || JSON.stringify(warning);
+                        aiReport += `- ⚠️ ${warningText}\n`;
+                      });
+                      aiReport += `\n`;
+                    }
+                    
+                    if (room.audio_config_ia) {
+                      const audioConfig = room.audio_config_ia as any;
+                      aiReport += `## 🔊 CONFIGURATION AUDIO RECOMMANDÉE\n\n`;
+                      aiReport += `- Type de sonorisation: ${audioConfig.type_sonorisation || "N/A"}\n`;
+                      if (audioConfig.ambiance?.active) {
+                        aiReport += `- Ambiance: ${audioConfig.ambiance.description}\n`;
+                      }
+                      if (audioConfig.puissance?.active) {
+                        aiReport += `- Puissance: ${audioConfig.puissance.niveau} - ${audioConfig.puissance.description}\n`;
+                      }
+                      if (audioConfig.diffusion?.homogene) {
+                        aiReport += `- Diffusion: ${audioConfig.diffusion.mode?.join(", ") || "N/A"} (${audioConfig.diffusion.approx_nb_enceintes || 0} enceintes approx.)\n`;
+                      }
+                      aiReport += `- DSP: ${audioConfig.traitement?.dsp_recommande ? "Recommandé" : "Non nécessaire"}\n`;
+                      aiReport += `- Dante: ${audioConfig.traitement?.dante_recommande ? "Recommandé" : "Non nécessaire"}\n`;
+                      aiReport += `\n`;
+                    }
+                    
+                    aiReport += `## 📋 RÉSUMÉ TECHNIQUE\n\n`;
+                    aiReport += room.resume_technique_ia || "Aucun résumé disponible";
+                    
+                    // Download as file
+                    const blob = new Blob([aiReport], { type: "text/plain;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `analyse-ia-${room.name.replace(/[^a-zA-Z0-9]/g, "-")}-${new Date().toISOString().split("T")[0]}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    toast.success("Compte rendu IA exporté");
+                  }}
+                  variant="outline"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exporter le compte rendu IA
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
