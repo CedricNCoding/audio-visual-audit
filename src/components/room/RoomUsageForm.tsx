@@ -13,6 +13,9 @@ interface RoomUsageData {
   automation_acoustic?: boolean;
   reservation_salle?: boolean;
   nombre_personnes?: number;
+  depose_materiel?: boolean;
+  rapatriement_materiel?: boolean;
+  formation_demandee?: boolean;
 }
 
 interface RoomUsageFormProps {
@@ -153,6 +156,55 @@ export const RoomUsageForm = ({ data, onChange }: RoomUsageFormProps) => {
               Traitement acoustique automatique
             </label>
           </div>
+        </div>
+      </div>
+
+      {/* Dépose et rapatriement */}
+      <div className="space-y-3">
+        <Label>Matériel existant</Label>
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="depose_materiel"
+              checked={data.depose_materiel || false}
+              onCheckedChange={(checked) =>
+                updateField("depose_materiel", checked)
+              }
+            />
+            <label htmlFor="depose_materiel" className="text-sm cursor-pointer">
+              Dépose de matériel existant demandée
+            </label>
+          </div>
+          {data.depose_materiel && (
+            <div className="flex items-center space-x-2 ml-6">
+              <Checkbox
+                id="rapatriement_materiel"
+                checked={data.rapatriement_materiel || false}
+                onCheckedChange={(checked) =>
+                  updateField("rapatriement_materiel", checked)
+                }
+              />
+              <label htmlFor="rapatriement_materiel" className="text-sm cursor-pointer">
+                Rapatriement du matériel demandé
+              </label>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Formation */}
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="formation_demandee"
+            checked={data.formation_demandee || false}
+            onCheckedChange={(checked) =>
+              updateField("formation_demandee", checked)
+            }
+          />
+          <label htmlFor="formation_demandee" className="text-sm cursor-pointer">
+            Formation demandée
+          </label>
         </div>
       </div>
     </div>
