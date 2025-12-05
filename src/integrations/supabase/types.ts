@@ -337,6 +337,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          building_name: string | null
           client_name: string
           comments: string | null
           contact_name: string | null
@@ -345,11 +346,14 @@ export type Database = {
           decision_date: string | null
           decision_service: string | null
           id: string
+          parking_utilitaire: boolean | null
+          site_address: string | null
           site_name: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          building_name?: string | null
           client_name: string
           comments?: string | null
           contact_name?: string | null
@@ -358,11 +362,14 @@ export type Database = {
           decision_date?: string | null
           decision_service?: string | null
           id?: string
+          parking_utilitaire?: boolean | null
+          site_address?: string | null
           site_name?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          building_name?: string | null
           client_name?: string
           comments?: string | null
           contact_name?: string | null
@@ -371,6 +378,8 @@ export type Database = {
           decision_date?: string | null
           decision_service?: string | null
           id?: string
+          parking_utilitaire?: boolean | null
+          site_address?: string | null
           site_name?: string | null
           updated_at?: string
           user_id?: string
@@ -395,6 +404,7 @@ export type Database = {
           has_acoustic_issue: boolean | null
           has_false_ceiling: boolean | null
           has_raised_floor: boolean | null
+          has_rj45: boolean | null
           height_m: number | null
           id: string
           length_m: number | null
@@ -403,6 +413,7 @@ export type Database = {
           mur_c_materiau: string | null
           mur_d_materiau: string | null
           mur_principal: string | null
+          rj45_count: number | null
           room_id: string
           updated_at: string
           wall_material: string | null
@@ -417,6 +428,7 @@ export type Database = {
           has_acoustic_issue?: boolean | null
           has_false_ceiling?: boolean | null
           has_raised_floor?: boolean | null
+          has_rj45?: boolean | null
           height_m?: number | null
           id?: string
           length_m?: number | null
@@ -425,6 +437,7 @@ export type Database = {
           mur_c_materiau?: string | null
           mur_d_materiau?: string | null
           mur_principal?: string | null
+          rj45_count?: number | null
           room_id: string
           updated_at?: string
           wall_material?: string | null
@@ -439,6 +452,7 @@ export type Database = {
           has_acoustic_issue?: boolean | null
           has_false_ceiling?: boolean | null
           has_raised_floor?: boolean | null
+          has_rj45?: boolean | null
           height_m?: number | null
           id?: string
           length_m?: number | null
@@ -447,6 +461,7 @@ export type Database = {
           mur_c_materiau?: string | null
           mur_d_materiau?: string | null
           mur_principal?: string | null
+          rj45_count?: number | null
           room_id?: string
           updated_at?: string
           wall_material?: string | null
@@ -573,10 +588,13 @@ export type Database = {
           automation_booking: boolean | null
           automation_lighting: boolean | null
           created_at: string
+          depose_materiel: boolean | null
+          formation_demandee: boolean | null
           id: string
           main_usage: string | null
           nombre_personnes: number | null
           platform_type: string | null
+          rapatriement_materiel: boolean | null
           reservation_salle: boolean | null
           room_id: string
           updated_at: string
@@ -588,10 +606,13 @@ export type Database = {
           automation_booking?: boolean | null
           automation_lighting?: boolean | null
           created_at?: string
+          depose_materiel?: boolean | null
+          formation_demandee?: boolean | null
           id?: string
           main_usage?: string | null
           nombre_personnes?: number | null
           platform_type?: string | null
+          rapatriement_materiel?: boolean | null
           reservation_salle?: boolean | null
           room_id: string
           updated_at?: string
@@ -603,10 +624,13 @@ export type Database = {
           automation_booking?: boolean | null
           automation_lighting?: boolean | null
           created_at?: string
+          depose_materiel?: boolean | null
+          formation_demandee?: boolean | null
           id?: string
           main_usage?: string | null
           nombre_personnes?: number | null
           platform_type?: string | null
+          rapatriement_materiel?: boolean | null
           reservation_salle?: boolean | null
           room_id?: string
           updated_at?: string

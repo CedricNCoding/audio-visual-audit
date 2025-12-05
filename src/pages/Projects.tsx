@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, FolderOpen, Calendar, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,11 +22,14 @@ const Projects = () => {
   const [formData, setFormData] = useState({
     client_name: "",
     site_name: "",
+    site_address: "",
+    building_name: "",
     contact_name: "",
     decision_service: "",
     decision_contact: "",
     decision_date: "",
     comments: "",
+    parking_utilitaire: false,
   });
 
   const { data: projects, isLoading } = useQuery({
@@ -60,11 +64,14 @@ const Projects = () => {
       setFormData({
         client_name: "",
         site_name: "",
+        site_address: "",
+        building_name: "",
         contact_name: "",
         decision_service: "",
         decision_contact: "",
         decision_date: "",
         comments: "",
+        parking_utilitaire: false,
       });
       navigate(`/projects/${project.id}`);
     },
@@ -165,6 +172,28 @@ const Projects = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="site_address">Adresse du chantier</Label>
+                  <Input
+                    id="site_address"
+                    value={formData.site_address}
+                    onChange={(e) =>
+                      setFormData({ ...formData, site_address: e.target.value })
+                    }
+                    placeholder="Ex: 123 rue de la Paix, 75001 Paris"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="building_name">Bâtiment</Label>
+                  <Input
+                    id="building_name"
+                    value={formData.building_name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, building_name: e.target.value })
+                    }
+                    placeholder="Ex: Bâtiment A, Tour principale..."
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="contact_name">Contact</Label>
                   <Input
                     id="contact_name"
@@ -223,6 +252,18 @@ const Projects = () => {
                     }
                     rows={3}
                   />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="parking_utilitaire"
+                    checked={formData.parking_utilitaire}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, parking_utilitaire: checked as boolean })
+                    }
+                  />
+                  <label htmlFor="parking_utilitaire" className="text-sm cursor-pointer">
+                    Stationnement utilitaire possible (hauteur 2m)
+                  </label>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button

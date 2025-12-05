@@ -23,6 +23,8 @@ interface RoomEnvironmentData {
   mur_c_materiau?: string;
   mur_d_materiau?: string;
   mur_principal?: string;
+  has_rj45?: boolean;
+  rj45_count?: number;
 }
 
 interface RoomEnvironmentFormProps {
@@ -119,6 +121,35 @@ export const RoomEnvironmentForm = ({ data, onChange, roomId }: RoomEnvironmentF
             <SelectItem value="forte">Forte</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Liaison réseau RJ45 existante */}
+      <div className="space-y-3">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="has_rj45"
+            checked={data.has_rj45 || false}
+            onCheckedChange={(checked) => updateField("has_rj45", checked)}
+          />
+          <label htmlFor="has_rj45" className="text-sm cursor-pointer">
+            Liaison réseau RJ45 existante
+          </label>
+        </div>
+        {data.has_rj45 && (
+          <div className="space-y-2 ml-6">
+            <Label htmlFor="rj45_count" className="text-sm text-muted-foreground">
+              Nombre de prises RJ45 disponibles
+            </Label>
+            <Input
+              id="rj45_count"
+              type="number"
+              min="0"
+              value={data.rj45_count || ""}
+              onChange={(e) => updateField("rj45_count", parseInt(e.target.value) || 0)}
+              className="w-32"
+            />
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">
