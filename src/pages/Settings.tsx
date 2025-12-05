@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Shield, UserX, UserCheck } from "lucide-react";
+import { Plus, Trash2, Shield, UserX, UserCheck, Image, Folder } from "lucide-react";
 import { toast } from "sonner";
 import { useAdmin } from "@/hooks/useAdmin";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +77,58 @@ const Settings = () => {
         .select("*");
       if (error) throw error;
       return data;
+    },
+    enabled: isAdmin,
+  });
+
+  // Fetch all rooms with their projects for photo context (admin only)
+  const { data: allRooms } = useQuery({
+    queryKey: ["all_rooms_for_photos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rooms")
+        .select("id, name, projects(client_name)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
+  // Fetch all photos from storage (admin only)
+  const { data: allPhotos, refetch: refetchPhotos } = useQuery({
+    queryKey: ["all_photos"],
+    queryFn: async () => {
+      // List all folders (room IDs) in the bucket
+      const { data: folders, error: foldersError } = await supabase.storage
+        .from("room-photos")
+        .list("", { limit: 1000 });
+      
+      if (foldersError) throw foldersError;
+      
+      // For each folder, list files
+      const allFiles: { roomId: string; fileName: string; fullPath: string }[] = [];
+      
+      for (const folder of folders || []) {
+        if (folder.id) {
+          const { data: files, error: filesError } = await supabase.storage
+            .from("room-photos")
+            .list(folder.name, { limit: 100 });
+          
+          if (!filesError && files) {
+            for (const file of files) {
+              if (file.name && !file.id) continue; // skip .emptyFolderPlaceholder
+              allFiles.push({
+                roomId: folder.name,
+                fileName: file.name,
+                fullPath: `${folder.name}/${file.name}`,
+              });
+            }
+          }
+        }
+      }
+      
+      return allFiles;
     },
     enabled: isAdmin,
   });
@@ -224,6 +276,38 @@ const Settings = () => {
       toast.error("Erreur: " + (error.message || "Impossible de supprimer l'utilisateur"));
     },
   });
+
+  const deletePhoto = useMutation({
+    mutationFn: async (fullPath: string) => {
+      const { error } = await supabase.storage
+        .from("room-photos")
+        .remove([fullPath]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      refetchPhotos();
+      toast.success("Photo supprimée");
+    },
+    onError: (error: any) => {
+      toast.error("Erreur: " + (error.message || "Impossible de supprimer la photo"));
+    },
+  });
+
+  const getPhotoUrl = (fullPath: string) => {
+    const { data } = supabase.storage
+      .from("room-photos")
+      .getPublicUrl(fullPath);
+    return data.publicUrl;
+  };
+
+  const getRoomName = (roomId: string) => {
+    const room = allRooms?.find((r) => r.id === roomId);
+    if (room) {
+      const project = room.projects as any;
+      return `${room.name} (${project?.client_name || "Sans projet"})`;
+    }
+    return roomId;
+  };
 
   const isUserAdmin = (userId: string) => {
     return userRoles?.some((r) => r.user_id === userId && r.role === "admin");
@@ -496,6 +580,69 @@ const Settings = () => {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Photos Management - Admin only */}
+            <Card className="glass neon-border-yellow">
+              <CardHeader>
+                <CardTitle className="neon-yellow flex items-center gap-2">
+                  <Image className="h-5 w-5" />
+                  Gestion des Photos
+                </CardTitle>
+                <CardDescription>
+                  Visualisez et supprimez les photos de toutes les salles
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {allPhotos && allPhotos.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {allPhotos.map((photo) => (
+                      <div key={photo.fullPath} className="relative group">
+                        <img
+                          src={getPhotoUrl(photo.fullPath)}
+                          alt={photo.fileName}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col items-center justify-center gap-2 p-2">
+                          <p className="text-xs text-center text-white truncate w-full">
+                            {getRoomName(photo.roomId)}
+                          </p>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="sm">
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Supprimer
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Supprimer la photo ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Cette action est irréversible. La photo sera définitivement supprimée.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deletePhoto.mutate(photo.fullPath)}
+                                  className="bg-destructive text-destructive-foreground"
+                                >
+                                  Supprimer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground py-8">
+                    <Folder className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Aucune photo dans le système</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </>
