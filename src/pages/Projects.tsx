@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, FolderOpen, Calendar, Trash2 } from "lucide-react";
+import { Plus, FolderOpen, Calendar, Trash2, Building2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -82,7 +82,6 @@ const Projects = () => {
 
   const deleteProject = useMutation({
     mutationFn: async (projectId: string) => {
-      // Delete all rooms in this project first
       const { error: roomsError } = await supabase
         .from("rooms")
         .delete()
@@ -90,7 +89,6 @@ const Projects = () => {
       
       if (roomsError) throw roomsError;
 
-      // Then delete the project
       const { error: projectError } = await supabase
         .from("projects")
         .delete()
@@ -111,7 +109,10 @@ const Projects = () => {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <p className="text-muted-foreground">Chargement...</p>
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-muted-foreground">Chargement...</p>
+          </div>
         </div>
       </AppLayout>
     );
@@ -119,18 +120,21 @@ const Projects = () => {
 
   return (
     <AppLayout title="Mes Projets">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in-up">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Projets</h2>
-            <p className="text-muted-foreground">
+            <h2 className="text-4xl font-bold tracking-tight font-display text-gradient-yellow">
+              Projets
+            </h2>
+            <p className="text-muted-foreground mt-2 text-lg">
               Gérez vos relevés techniques audiovisuels
             </p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="lg" className="gap-2">
-                <Plus className="h-4 w-4" />
+              <Button size="lg" className="gap-2 shadow-neon-yellow">
+                <Plus className="h-5 w-5" />
                 Nouveau projet
               </Button>
             </DialogTrigger>
@@ -146,7 +150,7 @@ const Projects = () => {
                   e.preventDefault();
                   createProject.mutate(formData);
                 }}
-                className="space-y-4"
+                className="space-y-6"
               >
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
@@ -253,7 +257,7 @@ const Projects = () => {
                     rows={3}
                   />
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
                   <Checkbox
                     id="parking_utilitaire"
                     checked={formData.parking_utilitaire}
@@ -265,7 +269,7 @@ const Projects = () => {
                     Stationnement utilitaire possible (hauteur 2m)
                   </label>
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-3 pt-4">
                   <Button
                     type="button"
                     variant="outline"
@@ -274,7 +278,7 @@ const Projects = () => {
                     Annuler
                   </Button>
                   <Button type="submit" disabled={createProject.isPending}>
-                    {createProject.isPending ? "Création..." : "Créer"}
+                    {createProject.isPending ? "Création..." : "Créer le projet"}
                   </Button>
                 </div>
               </form>
@@ -282,30 +286,34 @@ const Projects = () => {
           </Dialog>
         </div>
 
+        {/* Projects Grid */}
         {projects && projects.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <FolderOpen className="h-16 w-16 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-center mb-4">
+          <Card className="border-dashed border-2 border-border/50 bg-transparent animate-fade-in-up stagger-2">
+            <CardContent className="flex flex-col items-center justify-center py-20">
+              <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mb-6">
+                <FolderOpen className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground text-center text-lg mb-6">
                 Aucun projet pour le moment
               </p>
-              <Button onClick={() => setIsDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
+              <Button onClick={() => setIsDialogOpen(true)} size="lg" className="gap-2">
+                <Plus className="h-5 w-5" />
                 Créer mon premier projet
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {projects?.map((project) => (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {projects?.map((project, index) => (
               <Card
                 key={project.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow glass relative group"
+                className={`cursor-pointer hover-lift group relative animate-fade-in-up stagger-${Math.min(index + 1, 6)}`}
               >
+                {/* Delete Button */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 hover:bg-destructive/20 hover:text-destructive"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (confirm("Supprimer ce projet et toutes ses salles ?")) {
@@ -313,21 +321,31 @@ const Projects = () => {
                     }
                   }}
                 >
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
+
                 <div onClick={() => navigate(`/projects/${project.id}`)}>
-                  <CardHeader>
-                    <CardTitle className="line-clamp-1 neon-yellow">{project.client_name}</CardTitle>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="neon-yellow text-xl line-clamp-1">
+                      {project.client_name}
+                    </CardTitle>
                     {project.site_name && (
-                      <CardDescription className="line-clamp-1">
+                      <CardDescription className="flex items-center gap-2 line-clamp-1">
+                        <Building2 className="h-4 w-4 flex-shrink-0" />
                         {project.site_name}
                       </CardDescription>
                     )}
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-3">
+                    {project.site_address && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4 flex-shrink-0 text-accent" />
+                        <span className="line-clamp-1">{project.site_address}</span>
+                      </div>
+                    )}
                     {project.decision_date && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
+                        <Calendar className="h-4 w-4 flex-shrink-0 text-primary" />
                         <span>
                           Décision: {new Date(project.decision_date).toLocaleDateString("fr-FR")}
                         </span>
