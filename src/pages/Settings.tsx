@@ -293,11 +293,33 @@ const Settings = () => {
     },
   });
 
+  const [adminPhotoUrls, setAdminPhotoUrls] = useState<Record<string, string>>({});
+
+  // Generate signed URLs for admin photo management
+  useEffect(() => {
+    const generateSignedUrls = async () => {
+      if (!allPhotos || allPhotos.length === 0) return;
+      
+      const urls: Record<string, string> = {};
+      for (const photo of allPhotos) {
+        const { data, error } = await supabase.storage
+          .from("room-photos")
+          .createSignedUrl(photo.fullPath, 3600); // 1 hour expiry
+        
+        if (!error && data) {
+          urls[photo.fullPath] = data.signedUrl;
+        }
+      }
+      setAdminPhotoUrls(urls);
+    };
+
+    if (isAdmin) {
+      generateSignedUrls();
+    }
+  }, [allPhotos, isAdmin]);
+
   const getPhotoUrl = (fullPath: string) => {
-    const { data } = supabase.storage
-      .from("room-photos")
-      .getPublicUrl(fullPath);
-    return data.publicUrl;
+    return adminPhotoUrls[fullPath] || "";
   };
 
   const getRoomName = (roomId: string) => {
