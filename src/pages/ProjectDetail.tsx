@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, DoorOpen, ArrowLeft, Copy } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, DoorOpen, ArrowLeft, Copy, Building2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 const ROOM_TYPOLOGIES = [
@@ -103,7 +104,6 @@ const ProjectDetail = () => {
 
   const duplicateRoom = useMutation({
     mutationFn: async (roomId: string) => {
-      // Get original room data
       const { data: originalRoom, error: fetchError } = await supabase
         .from("rooms")
         .select("*")
@@ -112,7 +112,6 @@ const ProjectDetail = () => {
       
       if (fetchError) throw fetchError;
 
-      // Create new room
       const { data: newRoom, error: roomError } = await supabase
         .from("rooms")
         .insert([{
@@ -126,7 +125,6 @@ const ProjectDetail = () => {
       
       if (roomError) throw roomError;
 
-      // Copy sources
       const { data: sources } = await supabase
         .from("sources")
         .select("*")
@@ -138,7 +136,6 @@ const ProjectDetail = () => {
         );
       }
 
-      // Copy displays
       const { data: displays } = await supabase
         .from("displays")
         .select("*")
@@ -150,7 +147,6 @@ const ProjectDetail = () => {
         );
       }
 
-      // Copy connectivity zones
       const { data: zones } = await supabase
         .from("connectivity_zones")
         .select("*")
@@ -162,7 +158,6 @@ const ProjectDetail = () => {
         );
       }
 
-      // Copy cables
       const { data: cables } = await supabase
         .from("cables")
         .select("*")
@@ -187,25 +182,31 @@ const ProjectDetail = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center gap-4 animate-fade-in-up">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate("/")}
-            className="rounded-full"
+            className="rounded-xl self-start"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h2 className="text-3xl font-bold">{project?.client_name}</h2>
+            <h2 className="text-3xl font-bold font-display neon-yellow">
+              {project?.client_name}
+            </h2>
             {project?.site_name && (
-              <p className="text-muted-foreground">{project.site_name}</p>
+              <p className="text-muted-foreground flex items-center gap-2 mt-1">
+                <Building2 className="h-4 w-4" />
+                {project.site_name}
+              </p>
             )}
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 shadow-neon-yellow">
                 <Plus className="h-4 w-4" />
                 Nouvelle salle
               </Button>
@@ -222,7 +223,7 @@ const ProjectDetail = () => {
                   e.preventDefault();
                   createRoom.mutate(formData);
                 }}
-                className="space-y-4"
+                className="space-y-5"
               >
                 <div className="space-y-2">
                   <Label htmlFor="name">Nom de la salle *</Label>
@@ -276,7 +277,7 @@ const ProjectDetail = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-3 pt-4">
                   <Button
                     type="button"
                     variant="outline"
@@ -285,7 +286,7 @@ const ProjectDetail = () => {
                     Annuler
                   </Button>
                   <Button type="submit" disabled={createRoom.isPending}>
-                    {createRoom.isPending ? "Création..." : "Créer"}
+                    {createRoom.isPending ? "Création..." : "Créer la salle"}
                   </Button>
                 </div>
               </form>
@@ -293,42 +294,54 @@ const ProjectDetail = () => {
           </Dialog>
         </div>
 
+        {/* Rooms Grid */}
         {rooms && rooms.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <DoorOpen className="h-16 w-16 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-center mb-4">
+          <Card className="border-dashed border-2 border-border/50 bg-transparent animate-fade-in-up stagger-2">
+            <CardContent className="flex flex-col items-center justify-center py-20">
+              <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mb-6">
+                <DoorOpen className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground text-center text-lg mb-6">
                 Aucune salle pour ce projet
               </p>
-              <Button onClick={() => setIsDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
+              <Button onClick={() => setIsDialogOpen(true)} size="lg" className="gap-2">
+                <Plus className="h-5 w-5" />
                 Créer la première salle
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {rooms?.map((room) => (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {rooms?.map((room, index) => (
               <Card
                 key={room.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow glass relative group"
+                className={`cursor-pointer hover-lift group relative animate-fade-in-up stagger-${Math.min(index + 1, 6)}`}
               >
+                {/* Duplicate Button */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 hover:bg-accent/20 hover:text-accent"
                   onClick={(e) => {
                     e.stopPropagation();
                     duplicateRoom.mutate(room.id);
                   }}
                 >
-                  <Copy className="h-4 w-4 neon-blue" />
+                  <Copy className="h-4 w-4" />
                 </Button>
+
                 <div onClick={() => navigate(`/rooms/${room.id}`)}>
-                  <CardHeader>
-                    <CardTitle className="neon-yellow">{room.name}</CardTitle>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="neon-yellow text-xl line-clamp-1">
+                        {room.name}
+                      </CardTitle>
+                    </div>
                     {room.typology && (
-                      <CardDescription>{room.typology}</CardDescription>
+                      <Badge variant="cyan" className="w-fit mt-2">
+                        <Users className="h-3 w-3 mr-1" />
+                        {room.typology}
+                      </Badge>
                     )}
                   </CardHeader>
                 </div>
