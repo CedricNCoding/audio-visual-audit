@@ -156,12 +156,22 @@ export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditor
 
   const updateLabel = (label: string) => {
     if (!selectedElement) return;
-    updateElementMutation.mutate({ id: selectedElement.id, updates: { label } });
+    setSelectedElement({ ...selectedElement, label });
   };
 
   const updateCommentaire = (commentaire: string) => {
     if (!selectedElement) return;
-    updateElementMutation.mutate({ id: selectedElement.id, updates: { commentaire } });
+    setSelectedElement({ ...selectedElement, commentaire });
+  };
+
+  const saveLabel = () => {
+    if (!selectedElement) return;
+    updateElementMutation.mutate({ id: selectedElement.id, updates: { label: selectedElement.label } });
+  };
+
+  const saveCommentaire = () => {
+    if (!selectedElement) return;
+    updateElementMutation.mutate({ id: selectedElement.id, updates: { commentaire: selectedElement.commentaire } });
   };
 
   if (!roomLength || !roomWidth) {
@@ -259,6 +269,7 @@ export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditor
               <Input
                 value={selectedElement.label || ""}
                 onChange={(e) => updateLabel(e.target.value)}
+                onBlur={saveLabel}
                 placeholder="Ex: Écran principal"
               />
             </div>
@@ -268,6 +279,7 @@ export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditor
               <Textarea
                 value={selectedElement.commentaire || ""}
                 onChange={(e) => updateCommentaire(e.target.value)}
+                onBlur={saveCommentaire}
                 placeholder="Commentaire optionnel..."
                 rows={2}
               />
