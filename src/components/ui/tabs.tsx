@@ -54,7 +54,9 @@ const TabsContent = React.forwardRef<
     className={cn(
       "mt-4 ring-offset-background",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-      "animate-fade-in",
+      // Motion: tab content transition
+      "animate-tab-content",
+      "data-[state=inactive]:animate-fade-out",
       className,
     )}
     {...props}

@@ -307,13 +307,14 @@ const Projects = () => {
             {projects?.map((project, index) => (
               <Card
                 key={project.id}
-                className={`cursor-pointer hover-lift group relative animate-fade-in-up stagger-${Math.min(index + 1, 6)}`}
+                className="cursor-pointer hover-lift group relative animate-card-enter opacity-0"
+                style={{ animationDelay: `${index * 80}ms` }}
               >
                 {/* Delete Button */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 hover:bg-destructive/20 hover:text-destructive"
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 hover:bg-destructive/20 hover:text-destructive hover-icon-rotate"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (confirm("Supprimer ce projet et toutes ses salles ?")) {
@@ -321,12 +322,12 @@ const Projects = () => {
                     }
                   }}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 transition-transform" />
                 </Button>
 
                 <div onClick={() => navigate(`/projects/${project.id}`)}>
                   <CardHeader className="pb-3">
-                    <CardTitle className="neon-yellow text-xl line-clamp-1">
+                    <CardTitle className="neon-yellow text-xl line-clamp-1 transition-all duration-200 group-hover:translate-x-1">
                       {project.client_name}
                     </CardTitle>
                     {project.site_name && (
@@ -338,13 +339,13 @@ const Projects = () => {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {project.site_address && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80">
                         <MapPin className="h-4 w-4 flex-shrink-0 text-accent" />
                         <span className="line-clamp-1">{project.site_address}</span>
                       </div>
                     )}
                     {project.decision_date && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80">
                         <Calendar className="h-4 w-4 flex-shrink-0 text-primary" />
                         <span>
                           Décision: {new Date(project.decision_date).toLocaleDateString("fr-FR")}

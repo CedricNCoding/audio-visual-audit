@@ -342,22 +342,25 @@ const RoomDetail = () => {
           )}
         </div>
 
-        {/* Step Progress Indicator */}
-        <div className={`glass neon-border-yellow rounded-lg ${isMobile ? 'sticky top-0 z-40 p-2 -mx-4' : 'p-3 mb-4'}`}>
+        {/* Step Progress Indicator with motion */}
+        <div className={`glass neon-border-yellow rounded-lg animate-panel-reveal ${isMobile ? 'sticky top-0 z-40 p-2 -mx-4' : 'p-3 mb-4'}`}>
           <div className={`flex items-center ${isMobile ? 'gap-1 overflow-x-auto scrollbar-hide px-2' : 'gap-1.5 flex-wrap'} min-w-0`}>
             {stepNames.map((name, index) => (
               <button
                 key={name}
                 onClick={() => setActiveTab(steps[index])}
-                className={`flex items-center ${isMobile ? 'gap-1 px-1.5 py-1' : 'gap-1 px-2 py-1.5'} rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${
-                  index === currentStepIndex 
-                    ? "neon-border-blue bg-primary text-primary-foreground" 
+                className={`flex items-center ${isMobile ? 'gap-1 px-1.5 py-1' : 'gap-1 px-2 py-1.5'} rounded-lg whitespace-nowrap flex-shrink-0
+                  transition-all duration-200 ease-out
+                  hover:scale-[1.02] active:scale-[0.98]
+                  ${index === currentStepIndex 
+                    ? "neon-border-blue bg-primary text-primary-foreground shadow-glow-cyan" 
                     : index < currentStepIndex 
-                    ? "bg-primary/30 text-primary-foreground" 
-                    : "bg-muted text-muted-foreground"
+                    ? "bg-primary/30 text-primary-foreground hover:bg-primary/40" 
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
+                style={{ animationDelay: `${index * 40}ms` }}
               >
-                <span className={`flex items-center justify-center ${isMobile ? 'w-4 h-4 text-[9px]' : 'w-5 h-5 text-[10px]'} rounded-full ${
+                <span className={`flex items-center justify-center ${isMobile ? 'w-4 h-4 text-[9px]' : 'w-5 h-5 text-[10px]'} rounded-full transition-all duration-200 ${
                   index === currentStepIndex ? "bg-primary-foreground text-primary" : ""
                 }`}>
                   {index + 1}
