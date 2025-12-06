@@ -91,23 +91,40 @@ export const AuthForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">
-            {isLogin ? "Connexion" : "Créer un compte"}
-          </CardTitle>
-          <CardDescription>
-            {isLogin 
-              ? "Connectez-vous pour accéder à vos relevés techniques" 
-              : "Créez votre compte pour commencer"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-cyan/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-neon-yellow/5 rounded-full blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10 animate-fade-in-up">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold font-display">
+            <span className="neon-yellow">AV</span>
+            <span className="text-foreground"> Studio</span>
+            <span className="neon-cyan"> Pro</span>
+          </h1>
+          <p className="text-muted-foreground mt-2">Relevés techniques audiovisuels</p>
+        </div>
+
+        <div className="glass rounded-2xl p-8 shadow-elevated">
+          <div className="space-y-2 mb-6">
+            <h2 className="text-2xl font-semibold font-display">
+              {isLogin ? "Connexion" : "Créer un compte"}
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              {isLogin 
+                ? "Connectez-vous pour accéder à vos relevés" 
+                : "Créez votre compte pour commencer"}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="fullName">Nom complet</Label>
+                <Label htmlFor="fullName" className="text-sm text-muted-foreground">Nom complet</Label>
                 <Input
                   id="fullName"
                   type="text"
@@ -118,12 +135,12 @@ export const AuthForm = () => {
                   className={errors.fullName ? "border-destructive" : ""}
                 />
                 {errors.fullName && (
-                  <p className="text-sm text-destructive">{errors.fullName}</p>
+                  <p className="text-xs text-red-400">{errors.fullName}</p>
                 )}
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm text-muted-foreground">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -134,11 +151,11 @@ export const AuthForm = () => {
                 className={errors.email ? "border-destructive" : ""}
               />
               {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
+                <p className="text-xs text-red-400">{errors.email}</p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password" className="text-sm text-muted-foreground">Mot de passe</Label>
               <Input
                 id="password"
                 type="password"
@@ -149,7 +166,7 @@ export const AuthForm = () => {
                 className={errors.password ? "border-destructive" : ""}
               />
               {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
+                <p className="text-xs text-red-400">{errors.password}</p>
               )}
               {!isLogin && (
                 <p className="text-xs text-muted-foreground">Minimum 8 caractères</p>
@@ -159,20 +176,22 @@ export const AuthForm = () => {
               {loading ? "Chargement..." : isLogin ? "Se connecter" : "Créer mon compte"}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
+          
+          <div className="mt-6 text-center">
+            <div className="separator-glow-cyan mb-4" />
             <button
               type="button"
               onClick={() => {
                 setIsLogin(!isLogin);
                 setErrors({});
               }}
-              className="text-primary hover:underline"
+              className="text-neon-cyan hover:underline text-sm transition-colors"
             >
               {isLogin ? "Créer un compte" : "J'ai déjà un compte"}
             </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };
