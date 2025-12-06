@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Plus, Trash2, Upload, Download } from "lucide-react";
+import { Trash2, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
 
 interface PhotosManagerProps {
@@ -13,6 +13,7 @@ interface PhotosManagerProps {
 export const PhotosManager = ({ roomId }: PhotosManagerProps) => {
   const queryClient = useQueryClient();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
 
   const { data: photos } = useQuery({
     queryKey: ["room-photos", roomId],
@@ -25,6 +26,27 @@ export const PhotosManager = ({ roomId }: PhotosManagerProps) => {
       return data || [];
     },
   });
+
+  // Generate signed URLs for all photos
+  useEffect(() => {
+    const generateSignedUrls = async () => {
+      if (!photos || photos.length === 0) return;
+      
+      const urls: Record<string, string> = {};
+      for (const photo of photos) {
+        const { data, error } = await supabase.storage
+          .from("room-photos")
+          .createSignedUrl(`${roomId}/${photo.name}`, 3600); // 1 hour expiry
+        
+        if (!error && data) {
+          urls[photo.name] = data.signedUrl;
+        }
+      }
+      setPhotoUrls(urls);
+    };
+
+    generateSignedUrls();
+  }, [photos, roomId]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -63,13 +85,6 @@ export const PhotosManager = ({ roomId }: PhotosManagerProps) => {
       toast.success("Photo supprimée");
     },
   });
-
-  const getPhotoUrl = (fileName: string) => {
-    const { data } = supabase.storage
-      .from("room-photos")
-      .getPublicUrl(`${roomId}/${fileName}`);
-    return data.publicUrl;
-  };
 
   const downloadPhoto = async (fileName: string) => {
     try {
@@ -122,11 +137,17 @@ export const PhotosManager = ({ roomId }: PhotosManagerProps) => {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {photos.map((photo) => (
             <Card key={photo.name} className="p-2 glass relative group">
-              <img
-                src={getPhotoUrl(photo.name)}
-                alt={photo.name}
-                className="w-full h-48 object-cover rounded"
-              />
+              {photoUrls[photo.name] ? (
+                <img
+                  src={photoUrls[photo.name]}
+                  alt={photo.name}
+                  className="w-full h-48 object-cover rounded"
+                />
+              ) : (
+                <div className="w-full h-48 bg-muted rounded flex items-center justify-center">
+                  <span className="text-muted-foreground text-sm">Chargement...</span>
+                </div>
+              )}
               <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                 <Button
                   variant="secondary"
