@@ -8,69 +8,70 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Thème sombre néon avec glass-morphism */
-    --background: 0 0% 5%;
-    --foreground: 60 100% 95%;
+    /* Thème sombre avec fond dégradé bleu-gris */
+    --background: 220 100% 11%;
+    --background-end: 0 0% 20%;
+    --foreground: 0 0% 100%;
 
-    --card: 0 0% 8%;
-    --card-foreground: 60 100% 95%;
+    --card: 220 60% 14%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 60 100% 95%;
+    --popover: 220 50% 16%;
+    --popover-foreground: 0 0% 100%;
 
-    /* Néon jaune pour accents */
-    --primary: 60 100% 65%;
-    --primary-foreground: 0 0% 5%;
+    /* Boutons dorés */
+    --primary: 43 82% 57%;
+    --primary-foreground: 220 100% 11%;
 
-    /* Bleu néon pour boutons actifs */
-    --secondary: 190 100% 65%;
-    --secondary-foreground: 0 0% 5%;
+    /* Secondary plus sobre */
+    --secondary: 220 40% 25%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 220 30% 18%;
+    --muted-foreground: 0 0% 65%;
 
-    --accent: 190 100% 65%;
-    --accent-foreground: 0 0% 5%;
+    --accent: 43 82% 57%;
+    --accent-foreground: 220 100% 11%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 15%;
-    --ring: 60 100% 65%;
+    --border: 220 30% 25%;
+    --input: 220 40% 20%;
+    --ring: 43 82% 57%;
 
     --radius: 0.75rem;
 
     /* Glass-morphism variables */
-    --glass-bg: rgba(10, 10, 10, 0.6);
-    --glass-border: rgba(239, 255, 79, 0.2);
+    --glass-bg: rgba(0, 16, 58, 0.7);
+    --glass-border: rgba(236, 178, 53, 0.25);
     --glass-blur: blur(12px);
-    --neon-yellow: 60 100% 65%;
-    --neon-blue: 190 100% 65%;
-    --neon-glow: 0 0 20px;
+    --gold: 43 82% 57%;
+    --gold-glow: 0 0 20px;
   }
 
   .dark {
     /* Identique au root pour thème sombre unique */
-    --background: 0 0% 5%;
-    --foreground: 60 100% 95%;
-    --card: 0 0% 8%;
-    --card-foreground: 60 100% 95%;
-    --popover: 0 0% 10%;
-    --popover-foreground: 60 100% 95%;
-    --primary: 60 100% 65%;
-    --primary-foreground: 0 0% 5%;
-    --secondary: 190 100% 65%;
-    --secondary-foreground: 0 0% 5%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 190 100% 65%;
-    --accent-foreground: 0 0% 5%;
+    --background: 220 100% 11%;
+    --background-end: 0 0% 20%;
+    --foreground: 0 0% 100%;
+    --card: 220 60% 14%;
+    --card-foreground: 0 0% 100%;
+    --popover: 220 50% 16%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 43 82% 57%;
+    --primary-foreground: 220 100% 11%;
+    --secondary: 220 40% 25%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 30% 18%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 43 82% 57%;
+    --accent-foreground: 220 100% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 20%;
-    --input: 0 0% 15%;
-    --ring: 60 100% 65%;
+    --border: 220 30% 25%;
+    --input: 220 40% 20%;
+    --ring: 43 82% 57%;
   }
 }
 
@@ -80,8 +81,10 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    background: linear-gradient(135deg, hsl(220 100% 11%) 0%, hsl(0 0% 20%) 100%);
+    min-height: 100vh;
   }
 }
 
@@ -94,25 +97,23 @@ All colors MUST be HSL.
     border: 1px solid var(--glass-border);
   }
 
-  /* Neon effects */
-  .neon-yellow {
-    color: hsl(var(--neon-yellow));
-    text-shadow: 0 0 10px hsl(var(--neon-yellow) / 0.5);
+  /* Gold accent effects */
+  .text-gold {
+    color: hsl(var(--gold));
   }
 
-  .neon-blue {
-    color: hsl(var(--neon-blue));
-    text-shadow: 0 0 10px hsl(var(--neon-blue) / 0.5);
+  .text-gold-glow {
+    color: hsl(var(--gold));
+    text-shadow: 0 0 10px hsl(var(--gold) / 0.5);
   }
 
-  .neon-border-yellow {
-    border-color: hsl(var(--neon-yellow));
-    box-shadow: 0 0 10px hsl(var(--neon-yellow) / 0.3);
+  .border-gold {
+    border-color: hsl(var(--gold));
   }
 
-  .neon-border-blue {
-    border-color: hsl(var(--neon-blue));
-    box-shadow: 0 0 10px hsl(var(--neon-blue) / 0.3);
+  .border-gold-glow {
+    border-color: hsl(var(--gold));
+    box-shadow: 0 0 10px hsl(var(--gold) / 0.3);
   }
 
   /* Hide scrollbar */
