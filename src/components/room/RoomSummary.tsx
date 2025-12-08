@@ -4,35 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Download, Copy, Sparkles, CheckCircle, AlertCircle } from "lucide-react";
+import { Download, Copy, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AIAnalysisResults } from "@/components/ai/AIAnalysisResults";
-import { useRJ45Calculator } from "@/hooks/useRJ45Calculator";
-import { useTechnicalValidation } from "@/hooks/useTechnicalValidation";
 import { RoomPlanViewer } from "./RoomPlanViewer";
 
 interface RoomSummaryProps {
   roomId: string;
 }
-
-interface ChecklistItemProps {
-  label: string;
-  isComplete: boolean;
-}
-
-const ChecklistItem = ({ label, isComplete }: ChecklistItemProps) => (
-  <div className="flex items-center gap-2 text-sm">
-    {isComplete ? (
-      <CheckCircle className="h-4 w-4 text-green-400" />
-    ) : (
-      <AlertCircle className="h-4 w-4 text-yellow-500" />
-    )}
-    <span className={isComplete ? "text-foreground" : "text-muted-foreground"}>
-      {label}
-    </span>
-    {!isComplete && <span className="text-xs text-yellow-500">(À compléter)</span>}
-  </div>
-);
 
 export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
   const queryClient = useQueryClient();
@@ -187,45 +166,6 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     },
   });
 
-  const { calculateAndUpdate: calculateRJ45 } = useRJ45Calculator();
-  const { validate: validateTechnical } = useTechnicalValidation();
-
-  // Auto-calculate RJ45 recommendations when data changes
-  useEffect(() => {
-    if (room && roomVisio && roomSonorization && sources) {
-      calculateRJ45.mutate({
-        roomId,
-        visioRequired: roomVisio.visio_required,
-        streamingEnabled: roomVisio.streaming_enabled,
-        danteSouhaite: roomSonorization.dante_souhaite,
-        sources: sources,
-        platformType: roomUsage?.platform_type,
-      });
-    }
-  }, [roomId, roomVisio, roomSonorization, sources, roomUsage]);
-
-  // Auto-validate technical coherence when data changes
-  useEffect(() => {
-    if (room && cables && roomEnvironment && roomSonorization && roomVisio && connectivityZones) {
-      // Get AI settings for max distances
-      supabase
-        .from("ai_settings")
-        .select("max_hdmi_m, max_hdbaset_m")
-        .maybeSingle()
-        .then(({ data: aiSettings }) => {
-          validateTechnical.mutate({
-            roomId,
-            cables: cables,
-            environment: roomEnvironment,
-            sonorization: roomSonorization,
-            visio: roomVisio,
-            connectivity: connectivityZones,
-            maxHdmiM: aiSettings?.max_hdmi_m || 5,
-            maxHdbasetM: aiSettings?.max_hdbaset_m || 40,
-          });
-        });
-    }
-  }, [roomId, cables, roomEnvironment, roomSonorization, roomVisio, connectivityZones]);
 
   const generateScenarios = async () => {
     setIsGeneratingScenarios(true);
@@ -272,9 +212,14 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     text += `└─────────────────────────────────────────────────────┘\n`;
     text += `• Client : ${room?.projects?.client_name || "N/A"}\n`;
     text += `• Site : ${room?.projects?.site_name || "N/A"}\n`;
+    if (room?.projects?.site_address) text += `• Adresse du site : ${room.projects.site_address}\n`;
+    if (room?.projects?.building_name) text += `• Bâtiment : ${room.projects.building_name}\n`;
     text += `• Projet : ${room?.name || "N/A"}\n`;
     text += `• Service décideur : ${room?.projects?.decision_service || "N/A"} – Contact : ${room?.projects?.decision_contact || "N/A"}\n`;
-    text += `• Date de décision prévue : ${room?.projects?.decision_date || "N/A"}\n\n`;
+    text += `• Date de décision prévue : ${room?.projects?.decision_date || "N/A"}\n`;
+    text += `• Parking utilitaire (2m) : ${room?.projects?.parking_utilitaire ? "Oui" : "Non"}\n`;
+    if (room?.projects?.comments) text += `• Commentaires projet : ${room.projects.comments}\n`;
+    text += `\n`;
 
     // Section 2 – Usage et contexte
     text += `┌─────────────────────────────────────────────────────┐\n`;
@@ -286,6 +231,19 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       text += `• Niveau de compétence utilisateurs : ${roomUsage.user_skill_level || "N/A"}\n`;
       text += `• Plateforme principale : ${roomUsage.platform_type || "N/A"}\n`;
       text += `• Réservation de salle : ${roomUsage.reservation_salle ? "Oui" : "Non"}\n`;
+      text += `• Formation demandée : ${roomUsage.formation_demandee ? "Oui" : "Non"}\n`;
+      text += `• Dépose matériel autorisée : ${roomUsage.depose_materiel ? "Oui" : "Non"}\n`;
+      if (roomUsage.depose_materiel) {
+        text += `• Rapatriement matériel nécessaire : ${roomUsage.rapatriement_materiel ? "Oui" : "Non"}\n`;
+      }
+      // Automatisation
+      const automations = [];
+      if (roomUsage.automation_lighting) automations.push("Éclairage");
+      if (roomUsage.automation_acoustic) automations.push("Acoustique");
+      if (roomUsage.automation_booking) automations.push("Réservation");
+      if (automations.length > 0) {
+        text += `• Automatisation souhaitée : ${automations.join(", ")}\n`;
+      }
     }
     text += `\n`;
 
@@ -295,11 +253,18 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       text += `│ Section 3 – ENVIRONNEMENT                           │\n`;
       text += `└─────────────────────────────────────────────────────┘\n`;
       text += `• Dimensions : ${roomEnvironment.length_m || "?"}m x ${roomEnvironment.width_m || "?"}m x ${roomEnvironment.height_m || "?"}m\n`;
-      text += `• Murs : ${roomEnvironment.wall_material || "N/A"} – Sol : ${roomEnvironment.floor_material || "N/A"} – Plafond : ${roomEnvironment.ceiling_material || "N/A"}\n`;
+      // Matériaux des murs individuels
+      if (roomEnvironment.mur_a_materiau) text += `• Mur A (haut) : ${roomEnvironment.mur_a_materiau}\n`;
+      if (roomEnvironment.mur_b_materiau) text += `• Mur B (droite) : ${roomEnvironment.mur_b_materiau}\n`;
+      if (roomEnvironment.mur_c_materiau) text += `• Mur C (bas) : ${roomEnvironment.mur_c_materiau}\n`;
+      if (roomEnvironment.mur_d_materiau) text += `• Mur D (gauche) : ${roomEnvironment.mur_d_materiau}\n`;
+      if (roomEnvironment.mur_principal) text += `• Mur principal (diffuseur) : Mur ${roomEnvironment.mur_principal}\n`;
+      text += `• Sol : ${roomEnvironment.floor_material || "N/A"} – Plafond : ${roomEnvironment.ceiling_material || "N/A"}\n`;
       text += `• Plancher technique : ${roomEnvironment.has_raised_floor ? "Oui" : "Non"}\n`;
       text += `• Faux plafond technique : ${roomEnvironment.has_false_ceiling ? "Oui" : "Non"}\n`;
       text += `• Luminosité : ${roomEnvironment.brightness_level || "N/A"}\n`;
       text += `• Problèmes acoustiques : ${roomEnvironment.has_acoustic_issue ? "Oui" : "Non"}${roomEnvironment.acoustic_comment ? ` - ${roomEnvironment.acoustic_comment}` : ""}\n`;
+      text += `• Présence RJ45 : ${roomEnvironment.has_rj45 ? `Oui (${roomEnvironment.rj45_count || 0} prises)` : "Non"}\n`;
       text += `\n`;
     }
 
@@ -520,6 +485,16 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       md += `**Projet:** ${room.projects.client_name}`;
       if (room.projects.site_name) md += ` – Site: ${room.projects.site_name}`;
       md += `\n\n`;
+      
+      // Détails du projet
+      if (room.projects.site_address) md += `- **Adresse du site:** ${room.projects.site_address}\n`;
+      if (room.projects.building_name) md += `- **Bâtiment:** ${room.projects.building_name}\n`;
+      if (room.projects.decision_service) md += `- **Service décideur:** ${room.projects.decision_service}\n`;
+      if (room.projects.decision_contact) md += `- **Contact décideur:** ${room.projects.decision_contact}\n`;
+      if (room.projects.decision_date) md += `- **Date de décision prévue:** ${room.projects.decision_date}\n`;
+      md += `- **Parking utilitaire (2m):** ${room.projects.parking_utilitaire ? "Oui" : "Non"}\n`;
+      if (room.projects.comments) md += `- **Commentaires:** ${room.projects.comments}\n`;
+      md += `\n`;
     }
 
     // Usage & Contexte
@@ -531,6 +506,19 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       if (roomUsage.user_skill_level) md += `- **Niveau utilisateurs:** ${roomUsage.user_skill_level}\n`;
       if (roomUsage.platform_type) md += `- **Plateforme:** ${roomUsage.platform_type}\n`;
       md += `- **Réservation salle:** ${roomUsage.reservation_salle ? "Oui" : "Non"}\n`;
+      md += `- **Formation demandée:** ${roomUsage.formation_demandee ? "Oui" : "Non"}\n`;
+      md += `- **Dépose matériel:** ${roomUsage.depose_materiel ? "Oui" : "Non"}\n`;
+      if (roomUsage.depose_materiel) {
+        md += `- **Rapatriement matériel:** ${roomUsage.rapatriement_materiel ? "Oui" : "Non"}\n`;
+      }
+      // Automatisation
+      const automationsList = [];
+      if (roomUsage.automation_lighting) automationsList.push("Éclairage");
+      if (roomUsage.automation_acoustic) automationsList.push("Acoustique");
+      if (roomUsage.automation_booking) automationsList.push("Réservation");
+      if (automationsList.length > 0) {
+        md += `- **Automatisation:** ${automationsList.join(", ")}\n`;
+      }
     }
     md += `\n`;
 
@@ -543,12 +531,23 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       if (roomEnvironment.height_m) dims.push(`${roomEnvironment.height_m}m`);
       if (dims.length > 0) md += `- **Dimensions:** ${dims.join(" × ")}\n`;
       
-      if (roomEnvironment.wall_material) md += `- **Murs:** ${roomEnvironment.wall_material}\n`;
+      // Matériaux des murs individuels
+      if (roomEnvironment.mur_a_materiau) md += `- **Mur A (haut):** ${roomEnvironment.mur_a_materiau}\n`;
+      if (roomEnvironment.mur_b_materiau) md += `- **Mur B (droite):** ${roomEnvironment.mur_b_materiau}\n`;
+      if (roomEnvironment.mur_c_materiau) md += `- **Mur C (bas):** ${roomEnvironment.mur_c_materiau}\n`;
+      if (roomEnvironment.mur_d_materiau) md += `- **Mur D (gauche):** ${roomEnvironment.mur_d_materiau}\n`;
+      if (roomEnvironment.mur_principal) md += `- **Mur principal (diffuseur):** Mur ${roomEnvironment.mur_principal}\n`;
       if (roomEnvironment.floor_material) md += `- **Sol:** ${roomEnvironment.floor_material}\n`;
       if (roomEnvironment.ceiling_material) md += `- **Plafond:** ${roomEnvironment.ceiling_material}\n`;
       md += `- **Plancher technique:** ${roomEnvironment.has_raised_floor ? "Oui" : "Non"}\n`;
       md += `- **Faux plafond technique:** ${roomEnvironment.has_false_ceiling ? "Oui" : "Non"}\n`;
       if (roomEnvironment.brightness_level) md += `- **Luminosité:** ${roomEnvironment.brightness_level}\n`;
+      md += `- **Problèmes acoustiques:** ${roomEnvironment.has_acoustic_issue ? "Oui" : "Non"}`;
+      if (roomEnvironment.has_acoustic_issue && roomEnvironment.acoustic_comment) {
+        md += ` - ${roomEnvironment.acoustic_comment}`;
+      }
+      md += `\n`;
+      md += `- **Présence RJ45:** ${roomEnvironment.has_rj45 ? `Oui (${roomEnvironment.rj45_count || 0} prises)` : "Non"}\n`;
     }
     md += `\n`;
 
@@ -676,20 +675,6 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       });
     }
 
-    // Schéma et matériaux de la salle
-    if (roomEnvironment && (roomEnvironment.length_m || roomEnvironment.width_m)) {
-      md += `## 📐 Plan de la salle (simplifié)\n\n`;
-      if (roomEnvironment.length_m && roomEnvironment.width_m) {
-        md += `Salle rectangulaire : ${roomEnvironment.length_m} × ${roomEnvironment.width_m} m\n\n`;
-      }
-      md += `**Matériaux des murs (vue de dessus) :**\n`;
-      if (roomEnvironment.mur_a_materiau) md += `- Mur A (haut) : ${roomEnvironment.mur_a_materiau}\n`;
-      if (roomEnvironment.mur_b_materiau) md += `- Mur B (droite) : ${roomEnvironment.mur_b_materiau}\n`;
-      if (roomEnvironment.mur_c_materiau) md += `- Mur C (bas) : ${roomEnvironment.mur_c_materiau}\n`;
-      if (roomEnvironment.mur_d_materiau) md += `- Mur D (gauche) : ${roomEnvironment.mur_d_materiau}\n`;
-      if (roomEnvironment.mur_principal) md += `\n**Mur principal (diffuseur)** : Mur ${roomEnvironment.mur_principal}\n`;
-      md += `\n`;
-    }
 
     // Implantation des éléments dans la salle
     if (elementsSalle && elementsSalle.length > 0) {
@@ -724,28 +709,6 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       });
     }
 
-    // Réseau & RJ45 recommandés
-    if (room.rj45_total_recommande && room.rj45_total_recommande > 0) {
-      md += `## 🌐 Réseau & RJ45 recommandés\n\n`;
-      md += `- **Rack:** ${room.rj45_rack_recommande || 0} prise(s)\n`;
-      md += `- **Table:** ${room.rj45_table_recommande || 0} prise(s)\n`;
-      md += `- **Autres:** ${room.rj45_autres_recommande || 0} prise(s)\n`;
-      md += `- **Total:** ${room.rj45_total_recommande} prise(s)\n`;
-      if (room.rj45_commentaire) md += `\n*${room.rj45_commentaire}*\n`;
-      md += `\n`;
-    }
-
-    // Validation technique
-    if (room.validation_technique_statut) {
-      md += `## ✅ Validation technique\n\n`;
-      md += `**Statut:** ${room.validation_technique_statut}\n\n`;
-      if (room.validation_technique_details && room.validation_technique_details.length > 0) {
-        room.validation_technique_details.forEach((detail: string) => {
-          md += `${detail}\n`;
-        });
-        md += `\n`;
-      }
-    }
 
     // Scénarios d'usage
     if (room.scenarios_usage) {
@@ -1130,80 +1093,6 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
           </CardContent>
         </Card>
 
-        {/* RJ45 Network Recommendations */}
-        <Card className="glass neon-border-green p-6">
-          <CardHeader>
-            <CardTitle className="text-green-400">🌐 Réseau & RJ45 recommandés</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-3 bg-background/50 rounded-lg">
-                <p className="text-2xl font-bold text-green-400">{room?.rj45_rack_recommande || 0}</p>
-                <p className="text-sm text-muted-foreground">Rack</p>
-              </div>
-              <div className="text-center p-3 bg-background/50 rounded-lg">
-                <p className="text-2xl font-bold text-green-400">{room?.rj45_table_recommande || 0}</p>
-                <p className="text-sm text-muted-foreground">Table</p>
-              </div>
-              <div className="text-center p-3 bg-background/50 rounded-lg">
-                <p className="text-2xl font-bold text-green-400">{room?.rj45_autres_recommande || 0}</p>
-                <p className="text-sm text-muted-foreground">Autres</p>
-              </div>
-              <div className="text-center p-3 bg-primary/20 rounded-lg">
-                <p className="text-2xl font-bold text-primary">{room?.rj45_total_recommande || 0}</p>
-                <p className="text-sm text-muted-foreground font-semibold">Total</p>
-              </div>
-            </div>
-            {room?.rj45_commentaire && (
-              <p className="text-sm text-muted-foreground italic">{room.rj45_commentaire}</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Technical Checklist */}
-        <Card className="glass neon-border-yellow p-6">
-          <CardHeader>
-            <CardTitle className="neon-yellow">✅ Check-list technique</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <ChecklistItem 
-              label="Dimensions salle renseignées" 
-              isComplete={!!(roomEnvironment?.length_m && roomEnvironment?.width_m && roomEnvironment?.height_m)} 
-            />
-            <ChecklistItem 
-              label="Matériaux des murs renseignés" 
-              isComplete={!!(roomEnvironment?.mur_a_materiau && roomEnvironment?.mur_b_materiau && roomEnvironment?.mur_c_materiau && roomEnvironment?.mur_d_materiau)} 
-            />
-            <ChecklistItem 
-              label="Mur principal (diffuseur) défini" 
-              isComplete={!!roomEnvironment?.mur_principal} 
-            />
-            <ChecklistItem 
-              label="Type de sonorisation choisi" 
-              isComplete={!!roomSonorization?.type_sonorisation} 
-            />
-            <ChecklistItem 
-              label="Renforcement voix renseigné" 
-              isComplete={!roomSonorization?.renforcement_voix || (roomSonorization?.nb_micros_renfort && roomSonorization.nb_micros_renfort > 0)} 
-            />
-            <ChecklistItem 
-              label="Plateforme de visio renseignée" 
-              isComplete={!!roomVisio?.visio_platform} 
-            />
-            <ChecklistItem 
-              label="Liaisons principales créées" 
-              isComplete={(cables?.length || 0) > 0} 
-            />
-            <ChecklistItem 
-              label="Connectique utilisateur renseignée" 
-              isComplete={(connectivityZones?.length || 0) > 0} 
-            />
-            <ChecklistItem 
-              label="Photos de la salle présentes" 
-              isComplete={(photos?.length || 0) > 0} 
-            />
-          </CardContent>
-        </Card>
 
         {/* Technical Validation */}
         {room?.validation_technique_statut && (
