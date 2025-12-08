@@ -691,6 +691,27 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       md += `\n`;
     }
 
+    // Implantation des éléments dans la salle
+    if (elementsSalle && elementsSalle.length > 0) {
+      md += `## 🗺️ Implantation des éléments\n\n`;
+      
+      const elementsByType = elementsSalle.reduce((acc: Record<string, any[]>, el: any) => {
+        if (!acc[el.type_element]) acc[el.type_element] = [];
+        acc[el.type_element].push(el);
+        return acc;
+      }, {});
+
+      Object.entries(elementsByType).forEach(([type, elements]) => {
+        md += `### ${type}s (${elements.length})\n\n`;
+        elements.forEach((el: any, idx: number) => {
+          const label = el.label || `${type} #${idx + 1}`;
+          md += `- **${label}** – Position (~${Math.round(el.position_x)}%, ~${Math.round(el.position_y)}%)\n`;
+          if (el.commentaire) md += `  - *${el.commentaire}*\n`;
+        });
+        md += `\n`;
+      });
+    }
+
     // Photos de la salle
     if (photos && photos.length > 0) {
       md += `## 🖼️ Photos de la salle\n\n`;
