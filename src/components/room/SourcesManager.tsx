@@ -72,7 +72,6 @@ export const SourcesManager = ({ roomId }: SourcesManagerProps) => {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold neon-yellow">Sources en régie</h3>
       <div className="flex gap-4 items-end">
         <div className="flex-1 space-y-2">
           <Label>Type de source</Label>

@@ -19,7 +19,7 @@ import { RoomSonorizationForm } from "@/components/room/RoomSonorizationForm";
 import { SourcesManager } from "@/components/room/SourcesManager";
 import { DisplaysManager } from "@/components/room/DisplaysManager";
 import { ConnectivityManager } from "@/components/room/ConnectivityManager";
-import { CablesManager } from "@/components/room/CablesManager";
+
 import { PhotosManager } from "@/components/room/PhotosManager";
 import { RoomSummary } from "@/components/room/RoomSummary";
 import { StepNavigation } from "@/components/room/StepNavigation";
@@ -249,10 +249,10 @@ const RoomDetail = () => {
   };
 
   const isMobile = useIsMobile();
-  const steps = ["usage", "environment", "sources", "displays", "sonorization", "visio", "cables", "photos", "summary"];
+  const steps = ["usage", "environment", "sources", "displays", "sonorization", "visio", "photos", "summary"];
   const stepNames = isMobile 
-    ? ["Usage", "Env.", "Sources", "Diff.", "Sono", "Visio", "Câbles", "Photos", "Résumé"]
-    : ["Usage", "Environnement", "Sources", "Diffuseurs", "Sonorisation", "Visio", "Liaisons", "Photos", "Résumé"];
+    ? ["Usage", "Env.", "Sources", "Diff.", "Sono", "Visio", "Photos", "Résumé"]
+    : ["Usage", "Environnement", "Sources", "Diffuseurs", "Sonorisation", "Visio", "Photos", "Résumé"];
   const currentStepIndex = steps.indexOf(activeTab);
 
   const handleNext = () => {
@@ -523,26 +523,6 @@ const RoomDetail = () => {
                   data={sonorizationData}
                   onChange={setSonorizationData}
                 />
-                <StepNavigation
-                  currentStep={currentStepIndex + 1}
-                  totalSteps={steps.length}
-                  onNext={handleNext}
-                  onPrevious={handlePrevious}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="cables">
-            <Card className="glass neon-border-yellow">
-              <CardHeader>
-                <CardTitle className="neon-yellow">Liaisons & Câbles</CardTitle>
-                <CardDescription>
-                  Gérez les connexions et recommandations
-                </CardDescription>
-              </CardHeader>
-              <CardContent className={isMobile ? 'pb-20' : ''}>
-                <CablesManager roomId={roomId!} />
                 <StepNavigation
                   currentStep={currentStepIndex + 1}
                   totalSteps={steps.length}

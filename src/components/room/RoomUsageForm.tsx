@@ -5,8 +5,6 @@ import { Panel, InputField } from "@/components/design-system";
 
 interface RoomUsageData {
   main_usage?: string;
-  usage_intensity?: string;
-  user_skill_level?: string;
   platform_type?: string;
   automation_booking?: boolean;
   automation_lighting?: boolean;
@@ -53,40 +51,6 @@ export const RoomUsageForm = ({ data, onChange }: RoomUsageFormProps) => {
             Profil d'utilisation
           </h3>
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Intensité d'usage</Label>
-              <Select
-                value={data.usage_intensity || ""}
-                onValueChange={(value) => updateField("usage_intensity", value)}
-              >
-                <SelectTrigger className="bg-glass-light border-glass-border hover:border-accent/30 focus:border-neon-cyan/50 focus:shadow-glow-cyan transition-all">
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="occasionnel">Occasionnel</SelectItem>
-                  <SelectItem value="régulier">Régulier</SelectItem>
-                  <SelectItem value="intensif">Intensif</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Niveau de compétence</Label>
-              <Select
-                value={data.user_skill_level || ""}
-                onValueChange={(value) => updateField("user_skill_level", value)}
-              >
-                <SelectTrigger className="bg-glass-light border-glass-border hover:border-accent/30 focus:border-neon-cyan/50 focus:shadow-glow-cyan transition-all">
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="débutant">Débutant</SelectItem>
-                  <SelectItem value="intermédiaire">Intermédiaire</SelectItem>
-                  <SelectItem value="expert">Expert</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="space-y-2">
               <Label className="text-sm text-muted-foreground">Plateforme unique</Label>
               <Select
