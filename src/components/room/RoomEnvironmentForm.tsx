@@ -219,61 +219,6 @@ export const RoomEnvironmentForm = ({ data, onChange, roomId }: RoomEnvironmentF
         </div>
       </Panel>
 
-      {/* Formulaire texte récapitulatif */}
-      <Panel variant="default" neonBorder="cyan" className="animate-panel-reveal" style={{ animationDelay: '200ms' }}>
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-neon-cyan drop-shadow-[0_0_8px_hsl(var(--neon-cyan)/0.4)]">
-            Récapitulatif des murs
-          </h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            {[
-              { id: "mur_a", field: "mur_a_materiau" as const, label: "Mur A (haut)" },
-              { id: "mur_b", field: "mur_b_materiau" as const, label: "Mur B (droite)" },
-              { id: "mur_c", field: "mur_c_materiau" as const, label: "Mur C (bas)" },
-              { id: "mur_d", field: "mur_d_materiau" as const, label: "Mur D (gauche)" },
-            ].map((wall) => (
-              <div key={wall.id} className="space-y-2">
-                <Label htmlFor={wall.id} className="text-sm text-muted-foreground">{wall.label}</Label>
-                <Select
-                  value={data[wall.field] || ""}
-                  onValueChange={(value) => updateField(wall.field, value)}
-                >
-                  <SelectTrigger id={wall.id} className="bg-glass-light border-glass-border hover:border-accent/30 focus:border-neon-cyan/50 focus:shadow-glow-cyan transition-all">
-                    <SelectValue placeholder="Matériau" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Placo">Placo</SelectItem>
-                    <SelectItem value="Béton">Béton</SelectItem>
-                    <SelectItem value="Brique">Brique</SelectItem>
-                    <SelectItem value="Vitrage">Vitrage</SelectItem>
-                    <SelectItem value="Rideaux / tentures">Rideaux / tentures</SelectItem>
-                    <SelectItem value="Bois">Bois</SelectItem>
-                    <SelectItem value="Panneaux acoustiques">Panneaux acoustiques</SelectItem>
-                    <SelectItem value="Autre">Autre</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="mur_principal" className="text-sm text-muted-foreground">Mur principal (diffuseur)</Label>
-            <Select
-              value={data.mur_principal || ""}
-              onValueChange={(value) => updateField("mur_principal", value)}
-            >
-              <SelectTrigger id="mur_principal" className="bg-glass-light border-glass-border hover:border-accent/30 focus:border-neon-yellow/50 focus:shadow-glow-yellow transition-all">
-                <SelectValue placeholder="Choisir le mur principal" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="A">Mur A (haut)</SelectItem>
-                <SelectItem value="B">Mur B (droite)</SelectItem>
-                <SelectItem value="C">Mur C (bas)</SelectItem>
-                <SelectItem value="D">Mur D (gauche)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </Panel>
 
       {/* Plan d'implantation des éléments */}
       <Panel variant="default" neonBorder="yellow" className="animate-panel-reveal" style={{ animationDelay: '240ms' }}>
