@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Download, Copy, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Download, Copy, Sparkles, Save } from "lucide-react";
 import { toast } from "sonner";
 import { AIAnalysisResults } from "@/components/ai/AIAnalysisResults";
 import { RoomPlanViewer } from "./RoomPlanViewer";
@@ -21,6 +22,8 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
   const [showAiResults, setShowAiResults] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingScenarios, setIsGeneratingScenarios] = useState(false);
+  const [numeroDevis, setNumeroDevis] = useState("");
+  const [numeroAffaire, setNumeroAffaire] = useState("");
 
   const { data: room } = useQuery({
     queryKey: ["room", roomId],
@@ -166,6 +169,31 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     },
   });
 
+  // Initialiser les numéros depuis les données de la salle
+  useEffect(() => {
+    if (room) {
+      setNumeroDevis((room as any).numero_devis || "");
+      setNumeroAffaire((room as any).numero_affaire || "");
+    }
+  }, [room]);
+
+  // Mutation pour sauvegarder les numéros
+  const saveNumeros = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("rooms")
+        .update({ 
+          numero_devis: numeroDevis || null,
+          numero_affaire: numeroAffaire || null
+        })
+        .eq("id", roomId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["room", roomId] });
+      toast.success("Numéros sauvegardés");
+    },
+  });
 
   const generateScenarios = async () => {
     setIsGeneratingScenarios(true);
@@ -480,6 +508,13 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     // Titre principal
     md += `# 📋 ${room.name || "Salle"} – ${room.typology || "N/A"}\n\n`;
     
+    // Numéros de devis et affaire
+    if (room.numero_devis || room.numero_affaire) {
+      if (room.numero_devis) md += `**N° Devis:** ${room.numero_devis}  \n`;
+      if (room.numero_affaire) md += `**N° Affaire:** ${room.numero_affaire}  \n`;
+      md += `\n`;
+    }
+    
     // Sous-titre projet
     if (room.projects) {
       md += `**Projet:** ${room.projects.client_name}`;
@@ -502,8 +537,6 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     if (roomUsage) {
       if (roomUsage.nombre_personnes) md += `- **Capacité:** ${roomUsage.nombre_personnes} personnes\n`;
       if (roomUsage.main_usage) md += `- **Usage principal:** ${roomUsage.main_usage}\n`;
-      if (roomUsage.usage_intensity) md += `- **Intensité d'usage:** ${roomUsage.usage_intensity}\n`;
-      if (roomUsage.user_skill_level) md += `- **Niveau utilisateurs:** ${roomUsage.user_skill_level}\n`;
       if (roomUsage.platform_type) md += `- **Plateforme:** ${roomUsage.platform_type}\n`;
       md += `- **Réservation salle:** ${roomUsage.reservation_salle ? "Oui" : "Non"}\n`;
       md += `- **Formation demandée:** ${roomUsage.formation_demandee ? "Oui" : "Non"}\n`;
@@ -936,6 +969,47 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       )}
 
       <div className="space-y-4">
+        {/* Références commerciales */}
+        <Card className="glass neon-border-cyan p-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg neon-blue">📝 Références commerciales</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="numero_devis" className="text-sm text-muted-foreground">N° Devis</Label>
+                <Input
+                  id="numero_devis"
+                  value={numeroDevis}
+                  onChange={(e) => setNumeroDevis(e.target.value)}
+                  placeholder="Ex: DEV-2024-0123"
+                  className="bg-glass-light border-glass-border"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="numero_affaire" className="text-sm text-muted-foreground">N° Affaire</Label>
+                <Input
+                  id="numero_affaire"
+                  value={numeroAffaire}
+                  onChange={(e) => setNumeroAffaire(e.target.value)}
+                  placeholder="Ex: AFF-2024-0456"
+                  className="bg-glass-light border-glass-border"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={() => saveNumeros.mutate()}
+                  disabled={saveNumeros.isPending}
+                  className="gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  Sauvegarder
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Compte rendu structuré style Notion */}
         <Card className="glass neon-border-yellow p-6">
           <CardHeader className="flex flex-row items-center justify-between">

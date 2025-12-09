@@ -114,32 +114,6 @@ export const RoomVisioForm = ({ data, onChange }: RoomVisioFormProps) => {
                 </Select>
               </div>
 
-              <div>
-                <Label className="mb-3 block text-sm text-muted-foreground">Besoins</Label>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {[
-                    { id: "see", field: "need_to_see" as const, label: "Voir" },
-                    { id: "be_seen", field: "need_to_be_seen" as const, label: "Être vu" },
-                    { id: "hear", field: "need_to_hear" as const, label: "Entendre" },
-                    { id: "be_heard", field: "need_to_be_heard" as const, label: "Être entendu" },
-                  ].map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center space-x-3 p-3 rounded-xl bg-glass-subtle border border-glass-border/50 hover:border-accent/20 transition-all"
-                    >
-                      <Checkbox
-                        id={item.id}
-                        checked={data[item.field] || false}
-                        onCheckedChange={(checked) => updateField(item.field, checked)}
-                        className="data-[state=checked]:bg-neon-cyan data-[state=checked]:border-neon-cyan"
-                      />
-                      <label htmlFor={item.id} className="text-sm cursor-pointer text-foreground">
-                        {item.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </Panel>
 

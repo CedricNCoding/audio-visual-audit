@@ -726,6 +726,8 @@ export type Database = {
           debug_ia: string[] | null
           id: string
           name: string
+          numero_affaire: string | null
+          numero_devis: string | null
           package_id: string | null
           project_id: string
           resume_technique_ia: string | null
@@ -748,6 +750,8 @@ export type Database = {
           debug_ia?: string[] | null
           id?: string
           name: string
+          numero_affaire?: string | null
+          numero_devis?: string | null
           package_id?: string | null
           project_id: string
           resume_technique_ia?: string | null
@@ -770,6 +774,8 @@ export type Database = {
           debug_ia?: string[] | null
           id?: string
           name?: string
+          numero_affaire?: string | null
+          numero_devis?: string | null
           package_id?: string | null
           project_id?: string
           resume_technique_ia?: string | null
