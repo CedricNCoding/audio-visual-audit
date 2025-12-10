@@ -45,6 +45,7 @@ const getElementIcon = (type: string) => {
 export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditorProps) => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [draggedElement, setDraggedElement] = useState<string | null>(null);
+  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const planRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -104,7 +105,7 @@ export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditor
   });
 
   const handlePlanClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!selectedType || !planRef.current) return;
+    if (!selectedType || !planRef.current || draggedElement) return;
 
     const rect = planRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -119,27 +120,38 @@ export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditor
 
   const handleMouseDown = (elementId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setDraggedElement(elementId);
+    e.preventDefault();
+    const element = elements.find(el => el.id === elementId);
+    if (element) {
+      setDraggedElement(elementId);
+      setDragPosition({ x: element.position_x, y: element.position_y });
+    }
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!draggedElement || !planRef.current) return;
 
     const rect = planRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
 
-    updateElementMutation.mutate({
-      id: draggedElement,
-      updates: {
-        position_x: Math.max(0, Math.min(100, x)),
-        position_y: Math.max(0, Math.min(100, y)),
-      },
-    });
+    // Update local position immediately for smooth visual feedback
+    setDragPosition({ x, y });
   };
 
   const handleMouseUp = () => {
+    if (draggedElement && dragPosition) {
+      // Save final position to database
+      updateElementMutation.mutate({
+        id: draggedElement,
+        updates: {
+          position_x: dragPosition.x,
+          position_y: dragPosition.y,
+        },
+      });
+    }
     setDraggedElement(null);
+    setDragPosition(null);
   };
 
   const handleDelete = (elementId: string, e: React.MouseEvent) => {
@@ -203,26 +215,32 @@ export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditor
           {elements.map((element) => {
             const Icon = getElementIcon(element.type_element);
             const isDragging = draggedElement === element.id;
+            // Use drag position for the dragged element, otherwise use stored position
+            const displayX = isDragging && dragPosition ? dragPosition.x : element.position_x;
+            const displayY = isDragging && dragPosition ? dragPosition.y : element.position_y;
+            
             return (
               <div
                 key={element.id}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-grab group ${isDragging ? 'cursor-grabbing z-50' : ''}`}
+                className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-grab group transition-none ${isDragging ? 'cursor-grabbing z-50 pointer-events-none' : ''}`}
                 style={{
-                  left: `${element.position_x}%`,
-                  top: `${element.position_y}%`,
+                  left: `${displayX}%`,
+                  top: `${displayY}%`,
                 }}
                 onMouseDown={(e) => handleMouseDown(element.id, e)}
               >
                 <div className="relative">
-                  <div className={`bg-primary text-primary-foreground p-2 rounded-full shadow-lg transition-transform ${isDragging ? 'scale-125' : 'hover:scale-110'}`}>
+                  <div className={`bg-primary text-primary-foreground p-2 rounded-full shadow-lg ${isDragging ? 'scale-125 ring-2 ring-primary/50 shadow-xl' : 'hover:scale-110 transition-transform'}`}>
                     <Icon className="h-5 w-5" />
                   </div>
-                  <button
-                    onClick={(e) => handleDelete(element.id, e)}
-                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  {!isDragging && (
+                    <button
+                      onClick={(e) => handleDelete(element.id, e)}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
               </div>
             );
