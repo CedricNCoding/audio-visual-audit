@@ -1,10 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { 
   Monitor, 
@@ -12,11 +9,8 @@ import {
   ServerCog, 
   Cable, 
   Camera,
-  ArrowUp,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  Trash2,
+  Projector,
+  RectangleHorizontal,
   X
 } from "lucide-react";
 
@@ -29,14 +23,14 @@ interface RoomPlanEditorProps {
 interface ElementSalle {
   id: string;
   type_element: string;
-  label?: string;
   position_x: number;
   position_y: number;
-  commentaire?: string;
 }
 
 const ELEMENT_TYPES = [
   { value: "Écran", label: "Écran", icon: Monitor },
+  { value: "Vidéoprojecteur", label: "Vidéoprojecteur", icon: Projector },
+  { value: "Écran de projection", label: "Écran projection", icon: RectangleHorizontal },
   { value: "Enceinte", label: "Enceinte", icon: Speaker },
   { value: "Régie", label: "Régie", icon: ServerCog },
   { value: "Connectique", label: "Connectique", icon: Cable },
@@ -50,7 +44,7 @@ const getElementIcon = (type: string) => {
 
 export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditorProps) => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [selectedElement, setSelectedElement] = useState<ElementSalle | null>(null);
+  const [draggedElement, setDraggedElement] = useState<string | null>(null);
   const planRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -105,7 +99,6 @@ export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditor
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["elements_salle", roomId] });
-      setSelectedElement(null);
       toast.success("Élément supprimé");
     },
   });
@@ -124,54 +117,34 @@ export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditor
     });
   };
 
-  const handleElementClick = (element: ElementSalle, e: React.MouseEvent) => {
+  const handleMouseDown = (elementId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setSelectedElement(element);
+    setDraggedElement(elementId);
   };
 
-  const moveElement = (direction: "up" | "down" | "left" | "right") => {
-    if (!selectedElement) return;
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!draggedElement || !planRef.current) return;
 
-    const delta = 3;
-    let updates: Partial<ElementSalle> = {};
+    const rect = planRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-    switch (direction) {
-      case "up":
-        updates.position_y = Math.max(0, selectedElement.position_y - delta);
-        break;
-      case "down":
-        updates.position_y = Math.min(100, selectedElement.position_y + delta);
-        break;
-      case "left":
-        updates.position_x = Math.max(0, selectedElement.position_x - delta);
-        break;
-      case "right":
-        updates.position_x = Math.min(100, selectedElement.position_x + delta);
-        break;
-    }
-
-    updateElementMutation.mutate({ id: selectedElement.id, updates });
-    setSelectedElement({ ...selectedElement, ...updates });
+    updateElementMutation.mutate({
+      id: draggedElement,
+      updates: {
+        position_x: Math.max(0, Math.min(100, x)),
+        position_y: Math.max(0, Math.min(100, y)),
+      },
+    });
   };
 
-  const updateLabel = (label: string) => {
-    if (!selectedElement) return;
-    setSelectedElement({ ...selectedElement, label });
+  const handleMouseUp = () => {
+    setDraggedElement(null);
   };
 
-  const updateCommentaire = (commentaire: string) => {
-    if (!selectedElement) return;
-    setSelectedElement({ ...selectedElement, commentaire });
-  };
-
-  const saveLabel = () => {
-    if (!selectedElement) return;
-    updateElementMutation.mutate({ id: selectedElement.id, updates: { label: selectedElement.label } });
-  };
-
-  const saveCommentaire = () => {
-    if (!selectedElement) return;
-    updateElementMutation.mutate({ id: selectedElement.id, updates: { commentaire: selectedElement.commentaire } });
+  const handleDelete = (elementId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteElementMutation.mutate(elementId);
   };
 
   if (!roomLength || !roomWidth) {
@@ -193,7 +166,7 @@ export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditor
       <div>
         <h3 className="text-lg font-semibold mb-2">Plan de la salle – Implantation des éléments</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Sélectionnez un type d'élément puis cliquez sur le plan pour le placer
+          Sélectionnez un type puis cliquez sur le plan. Glissez pour déplacer.
         </p>
       </div>
 
@@ -217,27 +190,39 @@ export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditor
       <div className="relative flex justify-center">
         <div
           ref={planRef}
-          className="relative border-2 border-primary bg-background/50 cursor-crosshair"
+          className="relative border-2 border-primary bg-background/50 cursor-crosshair select-none"
           style={{
             width: `${Math.min(planWidth, 600)}px`,
             height: `${planHeight}px`,
           }}
           onClick={handlePlanClick}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
         >
           {elements.map((element) => {
             const Icon = getElementIcon(element.type_element);
+            const isDragging = draggedElement === element.id;
             return (
               <div
                 key={element.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer hover:scale-110 transition-transform"
+                className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-grab group ${isDragging ? 'cursor-grabbing z-50' : ''}`}
                 style={{
                   left: `${element.position_x}%`,
                   top: `${element.position_y}%`,
                 }}
-                onClick={(e) => handleElementClick(element, e)}
+                onMouseDown={(e) => handleMouseDown(element.id, e)}
               >
-                <div className="bg-primary text-primary-foreground p-2 rounded-full shadow-lg">
-                  <Icon className="h-5 w-5" />
+                <div className="relative">
+                  <div className={`bg-primary text-primary-foreground p-2 rounded-full shadow-lg transition-transform ${isDragging ? 'scale-125' : 'hover:scale-110'}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <button
+                    onClick={(e) => handleDelete(element.id, e)}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </div>
               </div>
             );
@@ -245,94 +230,21 @@ export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditor
         </div>
       </div>
 
-      {selectedElement && (
-        <Card className="p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="font-semibold">Éditer l'élément</h4>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedElement(null)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium">Type</label>
-              <p className="text-sm text-muted-foreground">{selectedElement.type_element}</p>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Label</label>
-              <Input
-                value={selectedElement.label || ""}
-                onChange={(e) => updateLabel(e.target.value)}
-                onBlur={saveLabel}
-                placeholder="Ex: Écran principal"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Commentaire</label>
-              <Textarea
-                value={selectedElement.commentaire || ""}
-                onChange={(e) => updateCommentaire(e.target.value)}
-                onBlur={saveCommentaire}
-                placeholder="Commentaire optionnel..."
-                rows={2}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Déplacement</label>
-              <div className="grid grid-cols-3 gap-2 max-w-[150px]">
-                <div />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => moveElement("up")}
-                >
-                  <ArrowUp className="h-4 w-4" />
-                </Button>
-                <div />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => moveElement("left")}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => moveElement("right")}
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-                <div />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => moveElement("down")}
-                >
-                  <ArrowDown className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => deleteElementMutation.mutate(selectedElement.id)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Supprimer
-            </Button>
-          </div>
-        </Card>
+      {/* Légende des éléments placés */}
+      {elements.length > 0 && (
+        <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+          {ELEMENT_TYPES.map((type) => {
+            const count = elements.filter(e => e.type_element === type.value).length;
+            if (count === 0) return null;
+            const Icon = type.icon;
+            return (
+              <span key={type.value} className="flex items-center gap-1 bg-muted/30 px-2 py-1 rounded">
+                <Icon className="h-3 w-3" />
+                {type.label}: {count}
+              </span>
+            );
+          })}
+        </div>
       )}
     </div>
   );
