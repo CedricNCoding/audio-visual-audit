@@ -730,16 +730,15 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       });
     }
 
-    // Photos de la salle
+    // Photos de la salle - liens cliquables
     if (photos && photos.length > 0) {
       md += `## 🖼️ Photos de la salle\n\n`;
-      md += `Voici les photos associées à cette salle :\n\n`;
       photos.forEach((photo, index) => {
         const photoUrl = getPhotoUrl(photo.name);
         const photoName = photo.name.split('_').slice(1).join('_') || `Photo ${index + 1}`;
-        md += `![${photoName}](${photoUrl})\n`;
-        md += `*${photoName}*\n\n`;
+        md += `- [📷 ${photoName}](${photoUrl})\n`;
       });
+      md += `\n`;
     }
 
 
