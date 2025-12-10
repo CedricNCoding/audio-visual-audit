@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Download, Copy, Sparkles, Save } from "lucide-react";
+import { Download, Copy, Sparkles, Save, FileText, FileType } from "lucide-react";
 import { toast } from "sonner";
 import { AIAnalysisResults } from "@/components/ai/AIAnalysisResults";
 import { RoomPlanViewer } from "./RoomPlanViewer";
+import jsPDF from "jspdf";
 
 interface RoomSummaryProps {
   roomId: string;
@@ -824,6 +825,178 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     toast.success("Fichier texte téléchargé");
   };
 
+  // Export RTF
+  const downloadRTFFile = () => {
+    if (!notionStyleReport) {
+      toast.error("Générez d'abord le compte rendu");
+      return;
+    }
+    
+    // Convert markdown to RTF
+    const rtfContent = convertMarkdownToRTF(notionStyleReport);
+    const blob = new Blob([rtfContent], { type: "application/rtf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Compte-rendu-${room?.name || "salle"}.rtf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Fichier RTF téléchargé");
+  };
+
+  const convertMarkdownToRTF = (markdown: string): string => {
+    let rtf = "{\\rtf1\\ansi\\ansicpg1252\\deff0\\nouicompat{\\fonttbl{\\f0\\fswiss\\fcharset0 Arial;}{\\f1\\fmodern\\fcharset0 Courier New;}}\n";
+    rtf += "{\\colortbl ;\\red0\\green0\\blue0;\\red0\\green100\\blue200;\\red200\\green50\\blue0;\\red0\\green150\\blue0;}\n";
+    rtf += "\\viewkind4\\uc1\\pard\\sa200\\sl276\\slmult1\\f0\\fs22\n";
+    
+    const lines = markdown.split("\n");
+    
+    for (const line of lines) {
+      let processedLine = line;
+      
+      // Headers
+      if (line.startsWith("# ")) {
+        rtf += `\\pard\\sa200\\sl276\\slmult1\\b\\fs36 ${escapeRTF(line.substring(2))}\\b0\\fs22\\par\n`;
+        continue;
+      }
+      if (line.startsWith("## ")) {
+        rtf += `\\pard\\sa200\\sl276\\slmult1\\b\\fs28 ${escapeRTF(line.substring(3))}\\b0\\fs22\\par\n`;
+        continue;
+      }
+      if (line.startsWith("### ")) {
+        rtf += `\\pard\\sa200\\sl276\\slmult1\\b\\fs24 ${escapeRTF(line.substring(4))}\\b0\\fs22\\par\n`;
+        continue;
+      }
+      
+      // Bold **text**
+      processedLine = processedLine.replace(/\*\*([^*]+)\*\*/g, "\\b $1\\b0 ");
+      
+      // Links [text](url) -> text (url)
+      processedLine = processedLine.replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 (\\cf2 $2\\cf1 )");
+      
+      // List items
+      if (line.startsWith("- ")) {
+        rtf += `\\pard\\fi-360\\li720\\sa200\\sl276\\slmult1 \\bullet  ${escapeRTF(processedLine.substring(2))}\\par\n`;
+        continue;
+      }
+      
+      // Normal paragraph
+      if (processedLine.trim()) {
+        rtf += `\\pard\\sa200\\sl276\\slmult1 ${escapeRTF(processedLine)}\\par\n`;
+      } else {
+        rtf += "\\par\n";
+      }
+    }
+    
+    rtf += "}";
+    return rtf;
+  };
+
+  const escapeRTF = (text: string): string => {
+    return text
+      .replace(/\\/g, "\\\\")
+      .replace(/\{/g, "\\{")
+      .replace(/\}/g, "\\}")
+      .replace(/[àâä]/g, "\\'e0")
+      .replace(/[éèêë]/g, "\\'e9")
+      .replace(/[îï]/g, "\\'ee")
+      .replace(/[ôö]/g, "\\'f4")
+      .replace(/[ùûü]/g, "\\'f9")
+      .replace(/ç/g, "\\'e7")
+      .replace(/[ÀÂÄÆ]/g, "\\'c0")
+      .replace(/[ÉÈÊË]/g, "\\'c9")
+      .replace(/[ÎÏ]/g, "\\'ce")
+      .replace(/[ÔÖ]/g, "\\'d4")
+      .replace(/[ÙÛÜ]/g, "\\'d9")
+      .replace(/Ç/g, "\\'c7")
+      .replace(/œ/g, "\\'9c")
+      .replace(/Œ/g, "\\'8c");
+  };
+
+  // Export PDF
+  const downloadPDFFile = () => {
+    if (!notionStyleReport || !room) {
+      toast.error("Générez d'abord le compte rendu");
+      return;
+    }
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+    let yPos = margin;
+
+    // Helper to add new page if needed
+    const checkNewPage = (height: number) => {
+      if (yPos + height > pageHeight - margin) {
+        doc.addPage();
+        yPos = margin;
+      }
+    };
+
+    const lines = notionStyleReport.split("\n");
+    
+    for (const line of lines) {
+      // Headers
+      if (line.startsWith("# ")) {
+        checkNewPage(15);
+        doc.setFontSize(18);
+        doc.setFont("helvetica", "bold");
+        const text = line.substring(2).replace(/[📋🎯📐🔊📹🖥️🔌🔗🗺️🖼️📋🤖⚠️⚡🎵]/g, "");
+        doc.text(text.trim(), margin, yPos);
+        yPos += 12;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        continue;
+      }
+      
+      if (line.startsWith("## ")) {
+        checkNewPage(12);
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        const text = line.substring(3).replace(/[📋🎯📐🔊📹🖥️🔌🔗🗺️🖼️📋🤖⚠️⚡🎵]/g, "");
+        doc.text(text.trim(), margin, yPos);
+        yPos += 10;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        continue;
+      }
+      
+      if (line.startsWith("### ")) {
+        checkNewPage(10);
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        const text = line.substring(4).replace(/[📋🎯📐🔊📹🖥️🔌🔗🗺️🖼️📋🤖⚠️⚡🎵]/g, "");
+        doc.text(text.trim(), margin, yPos);
+        yPos += 8;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        continue;
+      }
+
+      // Clean text from markdown
+      let cleanLine = line
+        .replace(/\*\*([^*]+)\*\*/g, "$1")
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)")
+        .replace(/^- /, "• ");
+
+      if (cleanLine.trim()) {
+        const splitLines = doc.splitTextToSize(cleanLine, maxWidth);
+        checkNewPage(splitLines.length * 5 + 2);
+        doc.text(splitLines, margin, yPos);
+        yPos += splitLines.length * 5 + 2;
+      } else {
+        yPos += 3;
+      }
+    }
+
+    doc.save(`Compte-rendu-${room.name || "salle"}.pdf`);
+    toast.success("Fichier PDF téléchargé");
+  };
+
   const analyzeWithAI = async () => {
     setIsAnalyzing(true);
     try {
@@ -1011,9 +1184,9 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
 
         {/* Compte rendu structuré style Notion */}
         <Card className="glass neon-border-yellow p-6">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col gap-4">
             <CardTitle className="neon-yellow">📋 Compte rendu structuré</CardTitle>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 onClick={forceGenerateReport}
                 variant="default"
@@ -1028,7 +1201,23 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
                 size="sm"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Télécharger .md
+                .md
+              </Button>
+              <Button
+                onClick={downloadRTFFile}
+                variant="secondary"
+                size="sm"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                .rtf
+              </Button>
+              <Button
+                onClick={downloadPDFFile}
+                variant="secondary"
+                size="sm"
+              >
+                <FileType className="h-4 w-4 mr-2" />
+                .pdf
               </Button>
             </div>
           </CardHeader>
