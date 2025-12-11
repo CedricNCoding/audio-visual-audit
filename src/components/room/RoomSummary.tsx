@@ -952,12 +952,21 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
 
-      const roomLength = roomEnvironment.length_m;
-      const roomWidth = roomEnvironment.width_m;
-      const maxPlanWidth = 120;
-      const ratio = roomWidth / roomLength;
-      const planWidth = Math.min(maxPlanWidth, ratio > 1 ? maxPlanWidth : maxPlanWidth * ratio);
-      const planHeight = ratio > 1 ? planWidth / ratio : planWidth;
+      const roomLength = Number(roomEnvironment.length_m);
+      const roomWidth = Number(roomEnvironment.width_m);
+      
+      // Calculate proportional plan size (width = horizontal, length = vertical)
+      // Max dimensions for the plan in the PDF
+      const maxPlanWidth = 100;
+      const maxPlanHeight = 60;
+      
+      // Calculate scale to fit within max dimensions while maintaining aspect ratio
+      const scaleX = maxPlanWidth / roomWidth;
+      const scaleY = maxPlanHeight / roomLength;
+      const scale = Math.min(scaleX, scaleY);
+      
+      const planWidth = roomWidth * scale;  // Horizontal dimension
+      const planHeight = roomLength * scale; // Vertical dimension
       const planX = margin + (maxWidth - planWidth) / 2;
       const planY = yPos;
 
@@ -969,7 +978,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       // Draw walls with labels
       doc.setFontSize(8);
       
-      // Wall A (top)
+      // Wall A (top) - width dimension
       const wallALabel = roomEnvironment.mur_a_materiau ? `A - ${roomEnvironment.mur_a_materiau}` : "A";
       doc.text(wallALabel + (roomEnvironment.mur_principal === "A" ? " (principal)" : ""), planX + planWidth / 2, planY - 3, { align: "center" });
       if (roomEnvironment.mur_principal === "A") {
@@ -978,7 +987,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
         doc.setLineWidth(0.5);
       }
 
-      // Wall B (right)
+      // Wall B (right) - length dimension
       const wallBLabel = roomEnvironment.mur_b_materiau ? `B - ${roomEnvironment.mur_b_materiau}` : "B";
       doc.text(wallBLabel + (roomEnvironment.mur_principal === "B" ? " (principal)" : ""), planX + planWidth + 3, planY + planHeight / 2, { angle: 90 });
       if (roomEnvironment.mur_principal === "B") {
@@ -987,7 +996,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
         doc.setLineWidth(0.5);
       }
 
-      // Wall C (bottom)
+      // Wall C (bottom) - width dimension
       const wallCLabel = roomEnvironment.mur_c_materiau ? `C - ${roomEnvironment.mur_c_materiau}` : "C";
       doc.text(wallCLabel + (roomEnvironment.mur_principal === "C" ? " (principal)" : ""), planX + planWidth / 2, planY + planHeight + 8, { align: "center" });
       if (roomEnvironment.mur_principal === "C") {
@@ -996,7 +1005,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
         doc.setLineWidth(0.5);
       }
 
-      // Wall D (left)
+      // Wall D (left) - length dimension
       const wallDLabel = roomEnvironment.mur_d_materiau ? `D - ${roomEnvironment.mur_d_materiau}` : "D";
       doc.text(wallDLabel + (roomEnvironment.mur_principal === "D" ? " (principal)" : ""), planX - 3, planY + planHeight / 2, { angle: -90 });
       if (roomEnvironment.mur_principal === "D") {
@@ -1005,7 +1014,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
         doc.setLineWidth(0.5);
       }
 
-      // Dimensions
+      // Dimensions labels
       doc.setFontSize(9);
       doc.text(`${roomWidth}m`, planX + planWidth / 2, planY + planHeight + 15, { align: "center" });
       doc.text(`${roomLength}m`, planX - 8, planY + planHeight / 2, { angle: -90 });
@@ -1026,12 +1035,18 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
 
-      const roomLength = roomEnvironment.length_m;
-      const roomWidth = roomEnvironment.width_m;
-      const maxPlanWidth = 120;
-      const ratio = roomWidth / roomLength;
-      const planWidth = Math.min(maxPlanWidth, ratio > 1 ? maxPlanWidth : maxPlanWidth * ratio);
-      const planHeight = ratio > 1 ? planWidth / ratio : planWidth;
+      const roomLength = Number(roomEnvironment.length_m);
+      const roomWidth = Number(roomEnvironment.width_m);
+      
+      // Calculate proportional plan size (width = horizontal, length = vertical)
+      const maxPlanWidth = 100;
+      const maxPlanHeight = 60;
+      const scaleX = maxPlanWidth / roomWidth;
+      const scaleY = maxPlanHeight / roomLength;
+      const scale = Math.min(scaleX, scaleY);
+      
+      const planWidth = roomWidth * scale;
+      const planHeight = roomLength * scale;
       const planX = margin + (maxWidth - planWidth) / 2;
       const planY = yPos;
 
