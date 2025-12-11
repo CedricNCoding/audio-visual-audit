@@ -915,7 +915,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       .replace(/Œ/g, "\\'8c");
   };
 
-  // Export PDF
+  // Export PDF with room plans
   const downloadPDFFile = () => {
     if (!notionStyleReport || !room) {
       toast.error("Générez d'abord le compte rendu");
@@ -934,7 +934,158 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       if (yPos + height > pageHeight - margin) {
         doc.addPage();
         yPos = margin;
+        return true;
       }
+      return false;
+    };
+
+    // Draw room schematic (wall materials)
+    const drawRoomSchematic = () => {
+      if (!roomEnvironment?.length_m || !roomEnvironment?.width_m) return;
+
+      checkNewPage(100);
+      
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Schema simplifie de la salle (vue de dessus)", margin, yPos);
+      yPos += 10;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+
+      const roomLength = roomEnvironment.length_m;
+      const roomWidth = roomEnvironment.width_m;
+      const maxPlanWidth = 120;
+      const ratio = roomWidth / roomLength;
+      const planWidth = Math.min(maxPlanWidth, ratio > 1 ? maxPlanWidth : maxPlanWidth * ratio);
+      const planHeight = ratio > 1 ? planWidth / ratio : planWidth;
+      const planX = margin + (maxWidth - planWidth) / 2;
+      const planY = yPos;
+
+      // Draw room rectangle
+      doc.setDrawColor(100, 100, 100);
+      doc.setLineWidth(0.5);
+      doc.rect(planX, planY, planWidth, planHeight);
+
+      // Draw walls with labels
+      doc.setFontSize(8);
+      
+      // Wall A (top)
+      const wallALabel = roomEnvironment.mur_a_materiau ? `A - ${roomEnvironment.mur_a_materiau}` : "A";
+      doc.text(wallALabel + (roomEnvironment.mur_principal === "A" ? " (principal)" : ""), planX + planWidth / 2, planY - 3, { align: "center" });
+      if (roomEnvironment.mur_principal === "A") {
+        doc.setLineWidth(1.5);
+        doc.line(planX, planY, planX + planWidth, planY);
+        doc.setLineWidth(0.5);
+      }
+
+      // Wall B (right)
+      const wallBLabel = roomEnvironment.mur_b_materiau ? `B - ${roomEnvironment.mur_b_materiau}` : "B";
+      doc.text(wallBLabel + (roomEnvironment.mur_principal === "B" ? " (principal)" : ""), planX + planWidth + 3, planY + planHeight / 2, { angle: 90 });
+      if (roomEnvironment.mur_principal === "B") {
+        doc.setLineWidth(1.5);
+        doc.line(planX + planWidth, planY, planX + planWidth, planY + planHeight);
+        doc.setLineWidth(0.5);
+      }
+
+      // Wall C (bottom)
+      const wallCLabel = roomEnvironment.mur_c_materiau ? `C - ${roomEnvironment.mur_c_materiau}` : "C";
+      doc.text(wallCLabel + (roomEnvironment.mur_principal === "C" ? " (principal)" : ""), planX + planWidth / 2, planY + planHeight + 8, { align: "center" });
+      if (roomEnvironment.mur_principal === "C") {
+        doc.setLineWidth(1.5);
+        doc.line(planX, planY + planHeight, planX + planWidth, planY + planHeight);
+        doc.setLineWidth(0.5);
+      }
+
+      // Wall D (left)
+      const wallDLabel = roomEnvironment.mur_d_materiau ? `D - ${roomEnvironment.mur_d_materiau}` : "D";
+      doc.text(wallDLabel + (roomEnvironment.mur_principal === "D" ? " (principal)" : ""), planX - 3, planY + planHeight / 2, { angle: -90 });
+      if (roomEnvironment.mur_principal === "D") {
+        doc.setLineWidth(1.5);
+        doc.line(planX, planY, planX, planY + planHeight);
+        doc.setLineWidth(0.5);
+      }
+
+      // Dimensions
+      doc.setFontSize(9);
+      doc.text(`${roomWidth}m`, planX + planWidth / 2, planY + planHeight + 15, { align: "center" });
+      doc.text(`${roomLength}m`, planX - 8, planY + planHeight / 2, { angle: -90 });
+
+      yPos = planY + planHeight + 25;
+    };
+
+    // Draw room plan with elements
+    const drawRoomPlanWithElements = () => {
+      if (!roomEnvironment?.length_m || !roomEnvironment?.width_m || !elementsSalle || elementsSalle.length === 0) return;
+
+      checkNewPage(100);
+      
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Plan d'implantation des elements", margin, yPos);
+      yPos += 10;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+
+      const roomLength = roomEnvironment.length_m;
+      const roomWidth = roomEnvironment.width_m;
+      const maxPlanWidth = 120;
+      const ratio = roomWidth / roomLength;
+      const planWidth = Math.min(maxPlanWidth, ratio > 1 ? maxPlanWidth : maxPlanWidth * ratio);
+      const planHeight = ratio > 1 ? planWidth / ratio : planWidth;
+      const planX = margin + (maxWidth - planWidth) / 2;
+      const planY = yPos;
+
+      // Draw room rectangle
+      doc.setDrawColor(100, 100, 100);
+      doc.setLineWidth(0.5);
+      doc.rect(planX, planY, planWidth, planHeight);
+
+      // Element type symbols
+      const elementSymbols: Record<string, string> = {
+        "Écran": "E",
+        "Vidéoprojecteur": "VP",
+        "Écran de projection": "EP",
+        "Enceinte": "S",
+        "Régie": "R",
+        "Connectique": "C",
+        "Caméra": "Ca",
+      };
+
+      // Draw elements
+      doc.setFontSize(7);
+      elementsSalle.forEach((el: any) => {
+        const elX = planX + (el.position_x / 100) * planWidth;
+        const elY = planY + (el.position_y / 100) * planHeight;
+        
+        // Draw circle
+        doc.setFillColor(50, 50, 50);
+        doc.circle(elX, elY, 4, "F");
+        
+        // Draw symbol
+        doc.setTextColor(255, 255, 255);
+        const symbol = elementSymbols[el.type_element] || "?";
+        doc.text(symbol, elX, elY + 1.5, { align: "center" });
+        doc.setTextColor(0, 0, 0);
+      });
+
+      // Legend
+      yPos = planY + planHeight + 10;
+      doc.setFontSize(8);
+      doc.text("Legende:", margin, yPos);
+      yPos += 5;
+
+      const elementCounts = elementsSalle.reduce((acc: Record<string, number>, el: any) => {
+        acc[el.type_element] = (acc[el.type_element] || 0) + 1;
+        return acc;
+      }, {});
+
+      Object.entries(elementCounts).forEach(([type, count]) => {
+        const symbol = elementSymbols[type] || "?";
+        doc.text(`${symbol} = ${type} (${count})`, margin + 5, yPos);
+        yPos += 4;
+      });
+
+      yPos += 10;
     };
 
     const lines = notionStyleReport.split("\n");
@@ -954,6 +1105,25 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       }
       
       if (line.startsWith("## ")) {
+        // Insert room plans after Environment section
+        if (line.includes("Environnement")) {
+          checkNewPage(12);
+          doc.setFontSize(14);
+          doc.setFont("helvetica", "bold");
+          const text = line.substring(3).replace(/[📋🎯📐🔊📹🖥️🔌🔗🗺️🖼️📋🤖⚠️⚡🎵]/g, "");
+          doc.text(text.trim(), margin, yPos);
+          yPos += 10;
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "normal");
+          continue;
+        }
+        
+        // Insert plans before Sources section
+        if (line.includes("Sources")) {
+          drawRoomSchematic();
+          drawRoomPlanWithElements();
+        }
+        
         checkNewPage(12);
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
@@ -994,7 +1164,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
     }
 
     doc.save(`Compte-rendu-${room.name || "salle"}.pdf`);
-    toast.success("Fichier PDF téléchargé");
+    toast.success("Fichier PDF telecharge");
   };
 
   const analyzeWithAI = async () => {
