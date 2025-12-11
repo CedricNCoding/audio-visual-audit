@@ -227,21 +227,25 @@ export const RoomPlanEditor = ({ roomId, roomLength, roomWidth }: RoomPlanEditor
                   left: `${displayX}%`,
                   top: `${displayY}%`,
                 }}
-                onMouseDown={(e) => handleMouseDown(element.id, e)}
               >
-                <div className="relative">
+                <div 
+                  className="relative"
+                  onMouseDown={(e) => handleMouseDown(element.id, e)}
+                >
                   <div className={`bg-primary text-primary-foreground p-2 rounded-full shadow-lg ${isDragging ? 'scale-125 ring-2 ring-primary/50 shadow-xl' : 'hover:scale-110 transition-transform'}`}>
                     <Icon className="h-5 w-5" />
                   </div>
-                  {!isDragging && (
-                    <button
-                      onClick={(e) => handleDelete(element.id, e)}
-                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
                 </div>
+                {!isDragging && (
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => handleDelete(element.id, e)}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 z-10"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
               </div>
             );
           })}
