@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Shield, UserX, UserCheck, Image, Folder } from "lucide-react";
+import { Plus, Trash2, Shield, UserX, UserCheck, Image, Folder, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { useAdmin } from "@/hooks/useAdmin";
 import { Badge } from "@/components/ui/badge";
@@ -233,20 +233,22 @@ const Settings = () => {
     },
   });
 
-  const toggleAdminRole = useMutation({
-    mutationFn: async ({ userId, makeAdmin }: { userId: string; makeAdmin: boolean }) => {
-      if (makeAdmin) {
-        const { error } = await supabase
+  const setUserRole = useMutation({
+    mutationFn: async ({ userId, newRole }: { userId: string; newRole: string }) => {
+      // First, delete all existing roles for this user
+      const { error: deleteError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId);
+      
+      if (deleteError) throw deleteError;
+
+      // If the new role is not "user" (default), add the role
+      if (newRole !== "user") {
+        const { error: insertError } = await supabase
           .from("user_roles")
-          .insert({ user_id: userId, role: "admin" });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", userId)
-          .eq("role", "admin");
-        if (error) throw error;
+          .insert({ user_id: userId, role: newRole as any });
+        if (insertError) throw insertError;
       }
     },
     onSuccess: () => {
@@ -335,6 +337,16 @@ const Settings = () => {
     return userRoles?.some((r) => r.user_id === userId && r.role === "admin");
   };
 
+  const isUserBureauEtude = (userId: string) => {
+    return userRoles?.some((r) => r.user_id === userId && (r.role as string) === "bureau_etude");
+  };
+
+  const getUserRole = (userId: string): string => {
+    if (isUserAdmin(userId)) return "admin";
+    if (isUserBureauEtude(userId)) return "bureau_etude";
+    return "user";
+  };
+
   if (adminLoading) {
     return (
       <AppLayout title="Paramètres">
@@ -367,7 +379,7 @@ const Settings = () => {
                   {allUsers?.map((user) => (
                     <div
                       key={user.id}
-                      className="flex items-center justify-between p-3 rounded glass"
+                      className="flex items-center justify-between p-3 rounded glass flex-wrap gap-3"
                     >
                       <div className="flex items-center gap-3">
                         <div>
@@ -379,30 +391,28 @@ const Settings = () => {
                             Admin
                           </Badge>
                         )}
+                        {isUserBureauEtude(user.id) && (
+                          <Badge variant="secondary" className="bg-accent/20 text-accent border-accent">
+                            Bureau d'Étude
+                          </Badge>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            toggleAdminRole.mutate({
-                              userId: user.id,
-                              makeAdmin: !isUserAdmin(user.id),
-                            })
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Select
+                          value={getUserRole(user.id)}
+                          onValueChange={(value) =>
+                            setUserRole.mutate({ userId: user.id, newRole: value })
                           }
                         >
-                          {isUserAdmin(user.id) ? (
-                            <>
-                              <UserX className="h-4 w-4 mr-1" />
-                              Retirer admin
-                            </>
-                          ) : (
-                            <>
-                              <UserCheck className="h-4 w-4 mr-1" />
-                              Rendre admin
-                            </>
-                          )}
-                        </Button>
+                          <SelectTrigger className="w-[160px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="user">Utilisateur</SelectItem>
+                            <SelectItem value="bureau_etude">Bureau d'Étude</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="destructive" size="sm">

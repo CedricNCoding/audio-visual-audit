@@ -10,9 +10,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, FolderOpen, Calendar, Trash2, Building2, MapPin } from "lucide-react";
+import { Plus, FolderOpen, Calendar, Trash2, Building2, MapPin, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useBureauEtude } from "@/hooks/useBureauEtude";
+
+interface ProjectWithUser {
+  id: string;
+  client_name: string;
+  site_name: string | null;
+  site_address: string | null;
+  building_name: string | null;
+  decision_date: string | null;
+  user_id: string;
+  created_at: string;
+  user_email?: string;
+}
 
 const Projects = () => {
   const { user, loading: authLoading } = useAuth();
@@ -32,8 +45,23 @@ const Projects = () => {
     parking_utilitaire: false,
   });
 
+  const { isBureauEtude, isLoading: bureauEtudeLoading } = useBureauEtude();
+
+  // Fetch all profiles for bureau d'étude view
+  const { data: profiles } = useQuery({
+    queryKey: ["all_profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, email, full_name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && isBureauEtude,
+  });
+
   const { data: projects, isLoading } = useQuery({
-    queryKey: ["projects"],
+    queryKey: ["projects", isBureauEtude],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
@@ -41,10 +69,26 @@ const Projects = () => {
         .order("created_at", { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data as ProjectWithUser[];
     },
     enabled: !!user,
   });
+
+  // Group projects by user for bureau d'étude
+  const projectsByUser = isBureauEtude && projects && profiles
+    ? projects.reduce((acc, project) => {
+        const userId = project.user_id;
+        if (!acc[userId]) {
+          const profile = profiles.find(p => p.id === userId);
+          acc[userId] = {
+            userEmail: profile?.email || profile?.full_name || "Utilisateur inconnu",
+            projects: [],
+          };
+        }
+        acc[userId].projects.push(project);
+        return acc;
+      }, {} as Record<string, { userEmail: string; projects: ProjectWithUser[] }>)
+    : null;
 
   const createProject = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -105,7 +149,7 @@ const Projects = () => {
     },
   });
 
-  if (authLoading || isLoading) {
+  if (authLoading || isLoading || bureauEtudeLoading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -118,17 +162,75 @@ const Projects = () => {
     );
   }
 
+  // Component to render a project card
+  const ProjectCard = ({ project, index, showDeleteButton = true }: { project: ProjectWithUser; index: number; showDeleteButton?: boolean }) => (
+    <Card
+      key={project.id}
+      className="cursor-pointer hover-lift group relative animate-card-enter opacity-0"
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
+      {/* Delete Button - only show if user owns the project */}
+      {showDeleteButton && project.user_id === user?.id && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 hover:bg-destructive/20 hover:text-destructive hover-icon-rotate"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm("Supprimer ce projet et toutes ses salles ?")) {
+              deleteProject.mutate(project.id);
+            }
+          }}
+        >
+          <Trash2 className="h-4 w-4 transition-transform" />
+        </Button>
+      )}
+
+      <div onClick={() => navigate(`/projects/${project.id}`)}>
+        <CardHeader className="pb-3">
+          <CardTitle className="neon-yellow text-xl line-clamp-1 transition-all duration-200 group-hover:translate-x-1">
+            {project.client_name}
+          </CardTitle>
+          {project.site_name && (
+            <CardDescription className="flex items-center gap-2 line-clamp-1">
+              <Building2 className="h-4 w-4 flex-shrink-0" />
+              {project.site_name}
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {project.site_address && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80">
+              <MapPin className="h-4 w-4 flex-shrink-0 text-accent" />
+              <span className="line-clamp-1">{project.site_address}</span>
+            </div>
+          )}
+          {project.decision_date && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80">
+              <Calendar className="h-4 w-4 flex-shrink-0 text-primary" />
+              <span>
+                Décision: {new Date(project.decision_date).toLocaleDateString("fr-FR")}
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </div>
+    </Card>
+  );
+
   return (
-    <AppLayout title="Mes Projets">
+    <AppLayout title={isBureauEtude ? "Bureau d'Étude - Tous les Projets" : "Mes Projets"}>
       <div className="space-y-8">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in-up">
           <div>
             <h2 className="text-4xl font-bold tracking-tight font-display text-gradient-yellow">
-              Projets
+              {isBureauEtude ? "Bureau d'Étude" : "Projets"}
             </h2>
             <p className="text-muted-foreground mt-2 text-lg">
-              Gérez vos relevés techniques audiovisuels
+              {isBureauEtude 
+                ? "Vue d'ensemble de tous les projets par utilisateur" 
+                : "Gérez vos relevés techniques audiovisuels"}
             </p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -296,65 +398,41 @@ const Projects = () => {
               <p className="text-muted-foreground text-center text-lg mb-6">
                 Aucun projet pour le moment
               </p>
-              <Button onClick={() => setIsDialogOpen(true)} size="lg" className="gap-2">
-                <Plus className="h-5 w-5" />
-                Créer mon premier projet
-              </Button>
+              {!isBureauEtude && (
+                <Button onClick={() => setIsDialogOpen(true)} size="lg" className="gap-2">
+                  <Plus className="h-5 w-5" />
+                  Créer mon premier projet
+                </Button>
+              )}
             </CardContent>
           </Card>
+        ) : isBureauEtude && projectsByUser ? (
+          // Bureau d'étude view: grouped by user
+          <div className="space-y-8">
+            {Object.entries(projectsByUser).map(([userId, { userEmail, projects: userProjects }], groupIndex) => (
+              <div key={userId} className="space-y-4 animate-fade-in-up" style={{ animationDelay: `${groupIndex * 100}ms` }}>
+                <div className="flex items-center gap-3 border-b border-border/50 pb-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <User className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">{userEmail}</h3>
+                    <p className="text-sm text-muted-foreground">{userProjects.length} projet{userProjects.length > 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {userProjects.map((project, index) => (
+                    <ProjectCard key={project.id} project={project} index={index} showDeleteButton={false} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
+          // Normal user view
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {projects?.map((project, index) => (
-              <Card
-                key={project.id}
-                className="cursor-pointer hover-lift group relative animate-card-enter opacity-0"
-                style={{ animationDelay: `${index * 80}ms` }}
-              >
-                {/* Delete Button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 hover:bg-destructive/20 hover:text-destructive hover-icon-rotate"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm("Supprimer ce projet et toutes ses salles ?")) {
-                      deleteProject.mutate(project.id);
-                    }
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 transition-transform" />
-                </Button>
-
-                <div onClick={() => navigate(`/projects/${project.id}`)}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="neon-yellow text-xl line-clamp-1 transition-all duration-200 group-hover:translate-x-1">
-                      {project.client_name}
-                    </CardTitle>
-                    {project.site_name && (
-                      <CardDescription className="flex items-center gap-2 line-clamp-1">
-                        <Building2 className="h-4 w-4 flex-shrink-0" />
-                        {project.site_name}
-                      </CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {project.site_address && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80">
-                        <MapPin className="h-4 w-4 flex-shrink-0 text-accent" />
-                        <span className="line-clamp-1">{project.site_address}</span>
-                      </div>
-                    )}
-                    {project.decision_date && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80">
-                        <Calendar className="h-4 w-4 flex-shrink-0 text-primary" />
-                        <span>
-                          Décision: {new Date(project.decision_date).toLocaleDateString("fr-FR")}
-                        </span>
-                      </div>
-                    )}
-                  </CardContent>
-                </div>
-              </Card>
+              <ProjectCard key={project.id} project={project} index={index} showDeleteButton={true} />
             ))}
           </div>
         )}
