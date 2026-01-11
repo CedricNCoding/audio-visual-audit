@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Download, Copy, Sparkles, Save, FileText, FileType } from "lucide-react";
+import { Download, Copy, Sparkles, Save, FileText, FileType, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AIAnalysisResults } from "@/components/ai/AIAnalysisResults";
 import { RoomPlanViewer } from "./RoomPlanViewer";
+import { SynopticDiagram } from "./SynopticDiagram";
 import jsPDF from "jspdf";
 
 interface RoomSummaryProps {
@@ -23,6 +24,7 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
   const [showAiResults, setShowAiResults] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingScenarios, setIsGeneratingScenarios] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [numeroDevis, setNumeroDevis] = useState("");
   const [numeroAffaire, setNumeroAffaire] = useState("");
 
@@ -915,213 +917,350 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
       .replace(/Œ/g, "\\'8c");
   };
 
-  // Export PDF with room plans
-  const downloadPDFFile = () => {
+  // Helper to load image as base64
+  const loadImageAsBase64 = async (fileName: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.storage
+        .from("room-photos")
+        .download(`${roomId}/${fileName}`);
+      
+      if (error || !data) return null;
+      
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(data);
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  // Export PDF with room plans and photos
+  const downloadPDFFile = async () => {
     if (!notionStyleReport || !room) {
       toast.error("Générez d'abord le compte rendu");
       return;
     }
 
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    const maxWidth = pageWidth - margin * 2;
-    let yPos = margin;
+    setIsGeneratingPDF(true);
+    toast.info("Génération du PDF en cours...");
 
-    // Helper to add new page if needed
-    const checkNewPage = (height: number) => {
-      if (yPos + height > pageHeight - margin) {
-        doc.addPage();
-        yPos = margin;
-        return true;
-      }
-      return false;
-    };
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      const maxWidth = pageWidth - margin * 2;
+      let yPos = margin;
 
-    // Draw room schematic (wall materials)
-    const drawRoomSchematic = () => {
-      if (!roomEnvironment?.length_m || !roomEnvironment?.width_m) return;
-
-      checkNewPage(100);
-      
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("Schema simplifie de la salle (vue de dessus)", margin, yPos);
-      yPos += 10;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-
-      const roomLength = Number(roomEnvironment.length_m);
-      const roomWidth = Number(roomEnvironment.width_m);
-      
-      // Calculate proportional plan size (width = horizontal, length = vertical)
-      // Max dimensions for the plan in the PDF
-      const maxPlanWidth = 100;
-      const maxPlanHeight = 60;
-      
-      // Calculate scale to fit within max dimensions while maintaining aspect ratio
-      const scaleX = maxPlanWidth / roomWidth;
-      const scaleY = maxPlanHeight / roomLength;
-      const scale = Math.min(scaleX, scaleY);
-      
-      const planWidth = roomWidth * scale;  // Horizontal dimension
-      const planHeight = roomLength * scale; // Vertical dimension
-      const planX = margin + (maxWidth - planWidth) / 2;
-      const planY = yPos;
-
-      // Draw room rectangle
-      doc.setDrawColor(100, 100, 100);
-      doc.setLineWidth(0.5);
-      doc.rect(planX, planY, planWidth, planHeight);
-
-      // Draw walls with labels
-      doc.setFontSize(8);
-      
-      // Wall A (top) - width dimension
-      const wallALabel = roomEnvironment.mur_a_materiau ? `A - ${roomEnvironment.mur_a_materiau}` : "A";
-      doc.text(wallALabel + (roomEnvironment.mur_principal === "A" ? " (principal)" : ""), planX + planWidth / 2, planY - 3, { align: "center" });
-      if (roomEnvironment.mur_principal === "A") {
-        doc.setLineWidth(1.5);
-        doc.line(planX, planY, planX + planWidth, planY);
-        doc.setLineWidth(0.5);
-      }
-
-      // Wall B (right) - length dimension
-      const wallBLabel = roomEnvironment.mur_b_materiau ? `B - ${roomEnvironment.mur_b_materiau}` : "B";
-      doc.text(wallBLabel + (roomEnvironment.mur_principal === "B" ? " (principal)" : ""), planX + planWidth + 3, planY + planHeight / 2, { angle: 90 });
-      if (roomEnvironment.mur_principal === "B") {
-        doc.setLineWidth(1.5);
-        doc.line(planX + planWidth, planY, planX + planWidth, planY + planHeight);
-        doc.setLineWidth(0.5);
-      }
-
-      // Wall C (bottom) - width dimension
-      const wallCLabel = roomEnvironment.mur_c_materiau ? `C - ${roomEnvironment.mur_c_materiau}` : "C";
-      doc.text(wallCLabel + (roomEnvironment.mur_principal === "C" ? " (principal)" : ""), planX + planWidth / 2, planY + planHeight + 8, { align: "center" });
-      if (roomEnvironment.mur_principal === "C") {
-        doc.setLineWidth(1.5);
-        doc.line(planX, planY + planHeight, planX + planWidth, planY + planHeight);
-        doc.setLineWidth(0.5);
-      }
-
-      // Wall D (left) - length dimension
-      const wallDLabel = roomEnvironment.mur_d_materiau ? `D - ${roomEnvironment.mur_d_materiau}` : "D";
-      doc.text(wallDLabel + (roomEnvironment.mur_principal === "D" ? " (principal)" : ""), planX - 3, planY + planHeight / 2, { angle: -90 });
-      if (roomEnvironment.mur_principal === "D") {
-        doc.setLineWidth(1.5);
-        doc.line(planX, planY, planX, planY + planHeight);
-        doc.setLineWidth(0.5);
-      }
-
-      // Dimensions labels
-      doc.setFontSize(9);
-      doc.text(`${roomWidth}m`, planX + planWidth / 2, planY + planHeight + 15, { align: "center" });
-      doc.text(`${roomLength}m`, planX - 8, planY + planHeight / 2, { angle: -90 });
-
-      yPos = planY + planHeight + 25;
-    };
-
-    // Draw room plan with elements
-    const drawRoomPlanWithElements = () => {
-      if (!roomEnvironment?.length_m || !roomEnvironment?.width_m || !elementsSalle || elementsSalle.length === 0) return;
-
-      checkNewPage(100);
-      
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("Plan d'implantation des elements", margin, yPos);
-      yPos += 10;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-
-      const roomLength = Number(roomEnvironment.length_m);
-      const roomWidth = Number(roomEnvironment.width_m);
-      
-      // Calculate proportional plan size (width = horizontal, length = vertical)
-      const maxPlanWidth = 100;
-      const maxPlanHeight = 60;
-      const scaleX = maxPlanWidth / roomWidth;
-      const scaleY = maxPlanHeight / roomLength;
-      const scale = Math.min(scaleX, scaleY);
-      
-      const planWidth = roomWidth * scale;
-      const planHeight = roomLength * scale;
-      const planX = margin + (maxWidth - planWidth) / 2;
-      const planY = yPos;
-
-      // Draw room rectangle
-      doc.setDrawColor(100, 100, 100);
-      doc.setLineWidth(0.5);
-      doc.rect(planX, planY, planWidth, planHeight);
-
-      // Element type symbols
-      const elementSymbols: Record<string, string> = {
-        "Écran": "E",
-        "Vidéoprojecteur": "VP",
-        "Écran de projection": "EP",
-        "Enceinte": "S",
-        "Régie": "R",
-        "Connectique": "C",
-        "Caméra": "Ca",
+      // Helper to add new page if needed
+      const checkNewPage = (height: number) => {
+        if (yPos + height > pageHeight - margin) {
+          doc.addPage();
+          yPos = margin;
+          return true;
+        }
+        return false;
       };
 
-      // Draw elements
-      doc.setFontSize(7);
-      elementsSalle.forEach((el: any) => {
-        const elX = planX + (el.position_x / 100) * planWidth;
-        const elY = planY + (el.position_y / 100) * planHeight;
+      // Draw room schematic (wall materials)
+      const drawRoomSchematic = () => {
+        if (!roomEnvironment?.length_m || !roomEnvironment?.width_m) return;
+
+        checkNewPage(100);
         
-        // Draw circle
-        doc.setFillColor(50, 50, 50);
-        doc.circle(elX, elY, 4, "F");
-        
-        // Draw symbol
-        doc.setTextColor(255, 255, 255);
-        const symbol = elementSymbols[el.type_element] || "?";
-        doc.text(symbol, elX, elY + 1.5, { align: "center" });
-        doc.setTextColor(0, 0, 0);
-      });
-
-      // Legend
-      yPos = planY + planHeight + 10;
-      doc.setFontSize(8);
-      doc.text("Legende:", margin, yPos);
-      yPos += 5;
-
-      const elementCounts = elementsSalle.reduce((acc: Record<string, number>, el: any) => {
-        acc[el.type_element] = (acc[el.type_element] || 0) + 1;
-        return acc;
-      }, {});
-
-      Object.entries(elementCounts).forEach(([type, count]) => {
-        const symbol = elementSymbols[type] || "?";
-        doc.text(`${symbol} = ${type} (${count})`, margin + 5, yPos);
-        yPos += 4;
-      });
-
-      yPos += 10;
-    };
-
-    const lines = notionStyleReport.split("\n");
-    
-    for (const line of lines) {
-      // Headers
-      if (line.startsWith("# ")) {
-        checkNewPage(15);
-        doc.setFontSize(18);
+        doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
-        const text = line.substring(2).replace(/[📋🎯📐🔊📹🖥️🔌🔗🗺️🖼️📋🤖⚠️⚡🎵]/g, "");
-        doc.text(text.trim(), margin, yPos);
-        yPos += 12;
+        doc.text("Schema simplifie de la salle (vue de dessus)", margin, yPos);
+        yPos += 10;
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
-        continue;
-      }
+
+        const roomLength = Number(roomEnvironment.length_m);
+        const roomWidth = Number(roomEnvironment.width_m);
+        
+        const maxPlanWidth = 100;
+        const maxPlanHeight = 60;
+        const scaleX = maxPlanWidth / roomWidth;
+        const scaleY = maxPlanHeight / roomLength;
+        const scale = Math.min(scaleX, scaleY);
+        
+        const planWidth = roomWidth * scale;
+        const planHeight = roomLength * scale;
+        const planX = margin + (maxWidth - planWidth) / 2;
+        const planY = yPos;
+
+        doc.setDrawColor(100, 100, 100);
+        doc.setLineWidth(0.5);
+        doc.rect(planX, planY, planWidth, planHeight);
+
+        doc.setFontSize(8);
+        
+        const wallALabel = roomEnvironment.mur_a_materiau ? `A - ${roomEnvironment.mur_a_materiau}` : "A";
+        doc.text(wallALabel + (roomEnvironment.mur_principal === "A" ? " (principal)" : ""), planX + planWidth / 2, planY - 3, { align: "center" });
+        if (roomEnvironment.mur_principal === "A") {
+          doc.setLineWidth(1.5);
+          doc.line(planX, planY, planX + planWidth, planY);
+          doc.setLineWidth(0.5);
+        }
+
+        const wallBLabel = roomEnvironment.mur_b_materiau ? `B - ${roomEnvironment.mur_b_materiau}` : "B";
+        doc.text(wallBLabel + (roomEnvironment.mur_principal === "B" ? " (principal)" : ""), planX + planWidth + 3, planY + planHeight / 2, { angle: 90 });
+        if (roomEnvironment.mur_principal === "B") {
+          doc.setLineWidth(1.5);
+          doc.line(planX + planWidth, planY, planX + planWidth, planY + planHeight);
+          doc.setLineWidth(0.5);
+        }
+
+        const wallCLabel = roomEnvironment.mur_c_materiau ? `C - ${roomEnvironment.mur_c_materiau}` : "C";
+        doc.text(wallCLabel + (roomEnvironment.mur_principal === "C" ? " (principal)" : ""), planX + planWidth / 2, planY + planHeight + 8, { align: "center" });
+        if (roomEnvironment.mur_principal === "C") {
+          doc.setLineWidth(1.5);
+          doc.line(planX, planY + planHeight, planX + planWidth, planY + planHeight);
+          doc.setLineWidth(0.5);
+        }
+
+        const wallDLabel = roomEnvironment.mur_d_materiau ? `D - ${roomEnvironment.mur_d_materiau}` : "D";
+        doc.text(wallDLabel + (roomEnvironment.mur_principal === "D" ? " (principal)" : ""), planX - 3, planY + planHeight / 2, { angle: -90 });
+        if (roomEnvironment.mur_principal === "D") {
+          doc.setLineWidth(1.5);
+          doc.line(planX, planY, planX, planY + planHeight);
+          doc.setLineWidth(0.5);
+        }
+
+        doc.setFontSize(9);
+        doc.text(`${roomWidth}m`, planX + planWidth / 2, planY + planHeight + 15, { align: "center" });
+        doc.text(`${roomLength}m`, planX - 8, planY + planHeight / 2, { angle: -90 });
+
+        yPos = planY + planHeight + 25;
+      };
+
+      // Draw room plan with elements
+      const drawRoomPlanWithElements = () => {
+        if (!roomEnvironment?.length_m || !roomEnvironment?.width_m || !elementsSalle || elementsSalle.length === 0) return;
+
+        checkNewPage(100);
+        
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("Plan d'implantation des elements", margin, yPos);
+        yPos += 10;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+
+        const roomLength = Number(roomEnvironment.length_m);
+        const roomWidth = Number(roomEnvironment.width_m);
+        
+        const maxPlanWidth = 100;
+        const maxPlanHeight = 60;
+        const scaleX = maxPlanWidth / roomWidth;
+        const scaleY = maxPlanHeight / roomLength;
+        const scale = Math.min(scaleX, scaleY);
+        
+        const planWidth = roomWidth * scale;
+        const planHeight = roomLength * scale;
+        const planX = margin + (maxWidth - planWidth) / 2;
+        const planY = yPos;
+
+        doc.setDrawColor(100, 100, 100);
+        doc.setLineWidth(0.5);
+        doc.rect(planX, planY, planWidth, planHeight);
+
+        const elementSymbols: Record<string, string> = {
+          "Écran": "E",
+          "Vidéoprojecteur": "VP",
+          "Écran de projection": "EP",
+          "Enceinte": "S",
+          "Régie": "R",
+          "Connectique": "C",
+          "Caméra": "Ca",
+        };
+
+        doc.setFontSize(7);
+        elementsSalle.forEach((el: any) => {
+          const elX = planX + (el.position_x / 100) * planWidth;
+          const elY = planY + (el.position_y / 100) * planHeight;
+          
+          doc.setFillColor(50, 50, 50);
+          doc.circle(elX, elY, 4, "F");
+          
+          doc.setTextColor(255, 255, 255);
+          const symbol = elementSymbols[el.type_element] || "?";
+          doc.text(symbol, elX, elY + 1.5, { align: "center" });
+          doc.setTextColor(0, 0, 0);
+        });
+
+        yPos = planY + planHeight + 10;
+        doc.setFontSize(8);
+        doc.text("Legende:", margin, yPos);
+        yPos += 5;
+
+        const elementCounts = elementsSalle.reduce((acc: Record<string, number>, el: any) => {
+          acc[el.type_element] = (acc[el.type_element] || 0) + 1;
+          return acc;
+        }, {});
+
+        Object.entries(elementCounts).forEach(([type, count]) => {
+          const symbol = elementSymbols[type] || "?";
+          doc.text(`${symbol} = ${type} (${count})`, margin + 5, yPos);
+          yPos += 4;
+        });
+
+        yPos += 10;
+      };
+
+      // Draw photos section
+      const drawPhotos = async () => {
+        if (!photos || photos.length === 0) return;
+
+        doc.addPage();
+        yPos = margin;
+        
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("Photos de la salle", margin, yPos);
+        yPos += 15;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+
+        const photoWidth = 80;
+        const photoHeight = 60;
+        const photosPerRow = 2;
+        const gapX = 10;
+        const gapY = 15;
+
+        for (let i = 0; i < photos.length; i++) {
+          const photo = photos[i];
+          const col = i % photosPerRow;
+          const row = Math.floor(i / photosPerRow);
+          
+          // Check if we need a new page
+          const neededY = yPos + row * (photoHeight + gapY) + photoHeight;
+          if (neededY > pageHeight - margin) {
+            doc.addPage();
+            yPos = margin;
+          }
+
+          const x = margin + col * (photoWidth + gapX);
+          const y = yPos + (row % 3) * (photoHeight + gapY);
+
+          try {
+            const base64 = await loadImageAsBase64(photo.name);
+            if (base64) {
+              doc.addImage(base64, "JPEG", x, y, photoWidth, photoHeight);
+              
+              // Add photo name below
+              doc.setFontSize(7);
+              const shortName = photo.name.length > 25 ? photo.name.substring(0, 22) + "..." : photo.name;
+              doc.text(shortName, x + photoWidth / 2, y + photoHeight + 4, { align: "center" });
+            }
+          } catch (e) {
+            // Draw placeholder if image fails
+            doc.setDrawColor(150, 150, 150);
+            doc.rect(x, y, photoWidth, photoHeight);
+            doc.text("Image non disponible", x + photoWidth / 2, y + photoHeight / 2, { align: "center" });
+          }
+
+          // After every 6 photos, start new page
+          if ((i + 1) % 6 === 0 && i < photos.length - 1) {
+            doc.addPage();
+            yPos = margin;
+          }
+        }
+      };
+
+      // Draw synoptic diagram
+      const drawSynopticDiagram = () => {
+        if (!cables || cables.length === 0) return;
+
+        doc.addPage();
+        yPos = margin;
+        
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("Schema synoptique des liaisons", margin, yPos);
+        yPos += 15;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+
+        // Draw cable list as table
+        doc.setFontSize(8);
+        
+        // Table headers
+        const colWidths = [50, 50, 35, 20];
+        const headers = ["Point A", "Point B", "Signal", "Distance"];
+        let xPos = margin;
+        
+        doc.setFont("helvetica", "bold");
+        headers.forEach((header, i) => {
+          doc.text(header, xPos, yPos);
+          xPos += colWidths[i];
+        });
+        doc.setFont("helvetica", "normal");
+        yPos += 6;
+        
+        // Draw line
+        doc.line(margin, yPos - 2, margin + colWidths.reduce((a, b) => a + b, 0), yPos - 2);
+
+        cables.forEach((cable) => {
+          if (yPos > pageHeight - margin - 10) {
+            doc.addPage();
+            yPos = margin;
+          }
+          
+          xPos = margin;
+          const pointA = cable.point_a.length > 20 ? cable.point_a.substring(0, 18) + ".." : cable.point_a;
+          const pointB = cable.point_b.length > 20 ? cable.point_b.substring(0, 18) + ".." : cable.point_b;
+          const signal = cable.signal_type.replace("Vidéo ", "").replace(" / ", "/");
+          
+          doc.text(pointA, xPos, yPos);
+          xPos += colWidths[0];
+          doc.text(pointB, xPos, yPos);
+          xPos += colWidths[1];
+          doc.text(signal, xPos, yPos);
+          xPos += colWidths[2];
+          doc.text(`${cable.distance_m}m`, xPos, yPos);
+          
+          yPos += 5;
+        });
+      };
+
+      // Generate report content
+      const lines = notionStyleReport.split("\n");
       
-      if (line.startsWith("## ")) {
-        // Insert room plans after Environment section
-        if (line.includes("Environnement")) {
+      for (const line of lines) {
+        if (line.startsWith("# ")) {
+          checkNewPage(15);
+          doc.setFontSize(18);
+          doc.setFont("helvetica", "bold");
+          const text = line.substring(2).replace(/[📋🎯📐🔊📹🖥️🔌🔗🗺️🖼️📋🤖⚠️⚡🎵]/g, "");
+          doc.text(text.trim(), margin, yPos);
+          yPos += 12;
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "normal");
+          continue;
+        }
+        
+        if (line.startsWith("## ")) {
+          if (line.includes("Environnement")) {
+            checkNewPage(12);
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            const text = line.substring(3).replace(/[📋🎯📐🔊📹🖥️🔌🔗🗺️🖼️📋🤖⚠️⚡🎵]/g, "");
+            doc.text(text.trim(), margin, yPos);
+            yPos += 10;
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            continue;
+          }
+          
+          if (line.includes("Sources")) {
+            drawRoomSchematic();
+            drawRoomPlanWithElements();
+          }
+          
           checkNewPage(12);
           doc.setFontSize(14);
           doc.setFont("helvetica", "bold");
@@ -1133,53 +1272,47 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
           continue;
         }
         
-        // Insert plans before Sources section
-        if (line.includes("Sources")) {
-          drawRoomSchematic();
-          drawRoomPlanWithElements();
+        if (line.startsWith("### ")) {
+          checkNewPage(10);
+          doc.setFontSize(12);
+          doc.setFont("helvetica", "bold");
+          const text = line.substring(4).replace(/[📋🎯📐🔊📹🖥️🔌🔗🗺️🖼️📋🤖⚠️⚡🎵]/g, "");
+          doc.text(text.trim(), margin, yPos);
+          yPos += 8;
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "normal");
+          continue;
         }
-        
-        checkNewPage(12);
-        doc.setFontSize(14);
-        doc.setFont("helvetica", "bold");
-        const text = line.substring(3).replace(/[📋🎯📐🔊📹🖥️🔌🔗🗺️🖼️📋🤖⚠️⚡🎵]/g, "");
-        doc.text(text.trim(), margin, yPos);
-        yPos += 10;
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        continue;
-      }
-      
-      if (line.startsWith("### ")) {
-        checkNewPage(10);
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        const text = line.substring(4).replace(/[📋🎯📐🔊📹🖥️🔌🔗🗺️🖼️📋🤖⚠️⚡🎵]/g, "");
-        doc.text(text.trim(), margin, yPos);
-        yPos += 8;
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        continue;
+
+        let cleanLine = line
+          .replace(/\*\*([^*]+)\*\*/g, "$1")
+          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)")
+          .replace(/^- /, "• ");
+
+        if (cleanLine.trim()) {
+          const splitLines = doc.splitTextToSize(cleanLine, maxWidth);
+          checkNewPage(splitLines.length * 5 + 2);
+          doc.text(splitLines, margin, yPos);
+          yPos += splitLines.length * 5 + 2;
+        } else {
+          yPos += 3;
+        }
       }
 
-      // Clean text from markdown
-      let cleanLine = line
-        .replace(/\*\*([^*]+)\*\*/g, "$1")
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)")
-        .replace(/^- /, "• ");
+      // Add synoptic diagram
+      drawSynopticDiagram();
 
-      if (cleanLine.trim()) {
-        const splitLines = doc.splitTextToSize(cleanLine, maxWidth);
-        checkNewPage(splitLines.length * 5 + 2);
-        doc.text(splitLines, margin, yPos);
-        yPos += splitLines.length * 5 + 2;
-      } else {
-        yPos += 3;
-      }
+      // Add photos at the end
+      await drawPhotos();
+
+      doc.save(`Compte-rendu-${room.name || "salle"}.pdf`);
+      toast.success("PDF généré avec photos et schéma synoptique !");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Erreur lors de la génération du PDF");
+    } finally {
+      setIsGeneratingPDF(false);
     }
-
-    doc.save(`Compte-rendu-${room.name || "salle"}.pdf`);
-    toast.success("Fichier PDF telecharge");
   };
 
   const analyzeWithAI = async () => {
@@ -1400,9 +1533,14 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
                 onClick={downloadPDFFile}
                 variant="secondary"
                 size="sm"
+                disabled={isGeneratingPDF}
               >
-                <FileType className="h-4 w-4 mr-2" />
-                .pdf
+                {isGeneratingPDF ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileType className="h-4 w-4 mr-2" />
+                )}
+                {isGeneratingPDF ? "Génération..." : ".pdf (avec photos)"}
               </Button>
             </div>
           </CardHeader>
@@ -1511,6 +1649,9 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
                 </div>
               </div>
             )}
+
+            {/* Schéma synoptique des liaisons */}
+            <SynopticDiagram roomId={roomId} />
 
             {/* Affichage visuel des photos */}
             {photos && photos.length > 0 && (
