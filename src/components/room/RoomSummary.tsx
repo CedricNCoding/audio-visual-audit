@@ -9,7 +9,6 @@ import { Download, Copy, Sparkles, Save, FileText, FileType, Loader2 } from "luc
 import { toast } from "sonner";
 import { AIAnalysisResults } from "@/components/ai/AIAnalysisResults";
 import { RoomPlanViewer } from "./RoomPlanViewer";
-import { SynopticDiagram } from "./SynopticDiagram";
 import jsPDF from "jspdf";
 
 interface RoomSummaryProps {
@@ -1171,62 +1170,6 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
         }
       };
 
-      // Draw synoptic diagram
-      const drawSynopticDiagram = () => {
-        if (!cables || cables.length === 0) return;
-
-        doc.addPage();
-        yPos = margin;
-        
-        doc.setFontSize(14);
-        doc.setFont("helvetica", "bold");
-        doc.text("Schema synoptique des liaisons", margin, yPos);
-        yPos += 15;
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-
-        // Draw cable list as table
-        doc.setFontSize(8);
-        
-        // Table headers
-        const colWidths = [50, 50, 35, 20];
-        const headers = ["Point A", "Point B", "Signal", "Distance"];
-        let xPos = margin;
-        
-        doc.setFont("helvetica", "bold");
-        headers.forEach((header, i) => {
-          doc.text(header, xPos, yPos);
-          xPos += colWidths[i];
-        });
-        doc.setFont("helvetica", "normal");
-        yPos += 6;
-        
-        // Draw line
-        doc.line(margin, yPos - 2, margin + colWidths.reduce((a, b) => a + b, 0), yPos - 2);
-
-        cables.forEach((cable) => {
-          if (yPos > pageHeight - margin - 10) {
-            doc.addPage();
-            yPos = margin;
-          }
-          
-          xPos = margin;
-          const pointA = cable.point_a.length > 20 ? cable.point_a.substring(0, 18) + ".." : cable.point_a;
-          const pointB = cable.point_b.length > 20 ? cable.point_b.substring(0, 18) + ".." : cable.point_b;
-          const signal = cable.signal_type.replace("Vidéo ", "").replace(" / ", "/");
-          
-          doc.text(pointA, xPos, yPos);
-          xPos += colWidths[0];
-          doc.text(pointB, xPos, yPos);
-          xPos += colWidths[1];
-          doc.text(signal, xPos, yPos);
-          xPos += colWidths[2];
-          doc.text(`${cable.distance_m}m`, xPos, yPos);
-          
-          yPos += 5;
-        });
-      };
-
       // Generate report content
       const lines = notionStyleReport.split("\n");
       
@@ -1298,9 +1241,6 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
           yPos += 3;
         }
       }
-
-      // Add synoptic diagram
-      drawSynopticDiagram();
 
       // Add photos at the end
       await drawPhotos();
@@ -1649,9 +1589,6 @@ export const RoomSummary = ({ roomId }: RoomSummaryProps) => {
                 </div>
               </div>
             )}
-
-            {/* Schéma synoptique des liaisons */}
-            <SynopticDiagram roomId={roomId} />
 
             {/* Affichage visuel des photos */}
             {photos && photos.length > 0 && (
